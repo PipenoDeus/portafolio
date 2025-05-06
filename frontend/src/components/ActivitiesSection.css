@@ -1,0 +1,48 @@
+.activities-container {
+  background-color: #000;
+  padding: 40px 20px;
+  text-align: center;
+  color: white;
+}
+
+.activities-container h2 {
+  font-family: 'Anton', sans-serif;
+  font-size: 2.5rem;
+  margin-bottom: 30px;
+}
+
+.activity-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr); /* 2 columnas */
+  gap: 20px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.activity-card {
+  height: 250px;
+  background-size: cover;
+  background-position: center;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.activity-card:hover {
+  transform: scale(1.03);
+}
+
+.activity-text {
+  width: 100%;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.6);
+  font-family: 'Anton', sans-serif;
+  font-size: 1.5rem;
+  color: white;
+  text-align: center;
+}

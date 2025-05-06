@@ -1,0 +1,30 @@
+.hero-section {
+    background-image: url('https://i.ibb.co/bRgcfvwz/Leonardo-Phoenix-10-A-powerful-boxingthemed-hero-banner-for-a-3.jpg'); 
+    background-size: cover;
+    background-position: center;
+    height: 80vh; /* Altura de la portada */
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    text-align: center;
+  }
+  
+  .hero-section::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* Oscurece la imagen para resaltar texto */
+    z-index: 1;
+  }
+  
+  .hero-text {
+    position: relative;
+    z-index: 2;
+    font-family: 'Anton', sans-serif;
+  }
+  
