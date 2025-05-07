@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../connection/supabaseClient';
 import bcrypt from 'bcryptjs';
-import { useAuth } from '../context/AuthContext'; // ⬅️ Importa el contexto
+import { useAuth } from '../context/AuthContext'; 
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth(); // ⬅️ Obtener la función de login
+  const { login } = useAuth(); 
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -39,7 +39,7 @@ const Login = () => {
         return;
       }
 
-      login(data); // ⬅️ Guarda al usuario en el contexto
+      login(data); 
       navigate('/perfil');
     } catch (err) {
       console.error(err);
