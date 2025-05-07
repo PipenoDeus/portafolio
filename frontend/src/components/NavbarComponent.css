@@ -4,3 +4,7 @@
   font-family: 'Anton', sans-serif;
   letter-spacing: 1px;
 }
+.navbar-black {
+  background-color: #000 !important;
+  border: 3px solid rgb(0, 0, 0);
+}

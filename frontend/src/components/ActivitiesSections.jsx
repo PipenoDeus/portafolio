@@ -43,6 +43,11 @@ function ActivitiesSection() {
           <span className="activity-text">Gimnasios</span>
         </div>
       </div>
+      <div style={{ marginTop: '30px', textAlign: 'center' }}>
+    <button type="button" className="btn btn-outline-warning">
+      Consultar todas las actividades
+    </button>
+  </div>
     </div>
   );
 }
