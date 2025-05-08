@@ -10,6 +10,7 @@ import Login from './components/login.jsx';
 import Home from './components/home.jsx';
 import Profile from './components/Profile.jsx';
 import Arriendo from './components/Arriendo.jsx'
+import Gimnasios from './components/Gimnasios.jsx';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
             <Route path="/sesion" element={<Login />} />
             <Route path="/perfil" element={<Profile />} />
             <Route path="/arriendo" element={<Arriendo />} />
+            <Route path="/gimnasios" element={<Gimnasios />} />
           </Routes>
         </main>
         <Footer />
