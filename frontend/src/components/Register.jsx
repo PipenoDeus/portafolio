@@ -53,7 +53,7 @@ const Register = () => {
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       <main style={{ flex: 1 }}>
         <div className="container mt-5 mb-5">
-          <h2 className="text-center mb-4" style={{ fontWeight: 'bold' }}>Registro de Boxeador</h2>
+          <h2 className="text-center mb-4" style={{ fontWeight: 'bold' }}>Registro</h2>
           <form onSubmit={handleSubmit} className="mx-auto p-4 shadow rounded" style={{ maxWidth: '600px', backgroundColor: '#f9f9f9' }}>
             <div className="mb-3">
               <label className="form-label">Correo Electrónico</label>

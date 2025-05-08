@@ -10,19 +10,26 @@ const Profile = () => {
 
   useEffect(() => {
     if (!user) {
+      console.log('Usuario no autenticado, redirigiendo...');
       navigate('/sesion');
     } else {
+      console.log('Usuario autenticado:', user);
       setAvatarUrl(user.avatar_url);
     }
   }, [user, navigate]);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
-    if (!file) return;
+    if (!file) {
+      console.log('No se seleccionó ningún archivo');
+      return;
+    }
 
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}.${fileExt}`;
-    const filePath = `avatars/${fileName}`;
+    const filePath = fileName;
+    console.log('Archivo seleccionado:', file.name);
+    console.log('Ruta de almacenamiento:', filePath);
 
     const { error: uploadError } = await supabase.storage
       .from('avatars')
@@ -34,7 +41,8 @@ const Profile = () => {
       return;
     }
 
-    // ✅ Corrección: asegurar que se obtenga la URL pública correctamente
+    console.log('Imagen subida con éxito');
+
     const { data: publicUrlData, error: publicUrlError } = await supabase
       .storage
       .from('avatars')
@@ -47,8 +55,8 @@ const Profile = () => {
     }
 
     const newAvatarUrl = publicUrlData.publicUrl;
+    console.log('URL pública del avatar:', newAvatarUrl);
 
-    // ✅ Guardar nueva URL en la tabla de perfiles
     const { error: updateError } = await supabase
       .from('boxer_profiles')
       .update({ avatar_url: newAvatarUrl })
@@ -60,7 +68,8 @@ const Profile = () => {
       return;
     }
 
-    // ✅ Forzar refetch del perfil actualizado desde la base de datos
+    console.log('Avatar actualizado en la base de datos');
+
     const { data: updatedProfile, error: fetchError } = await supabase
       .from('boxer_profiles')
       .select('*')
@@ -72,6 +81,8 @@ const Profile = () => {
       alert('Error al obtener los datos actualizados');
       return;
     }
+
+    console.log('Perfil actualizado:', updatedProfile);
 
     setAvatarUrl(updatedProfile.avatar_url);
     updateUser({ ...user, ...updatedProfile });

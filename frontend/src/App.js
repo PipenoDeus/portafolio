@@ -9,6 +9,7 @@ import Register from './components/Register.jsx';
 import Login from './components/login.jsx';
 import Home from './components/home.jsx';
 import Profile from './components/Profile.jsx';
+import Arriendo from './components/Arriendo.jsx'
 
 function App() {
   return (
@@ -21,6 +22,7 @@ function App() {
             <Route path="/registro" element={<Register />} />
             <Route path="/sesion" element={<Login />} />
             <Route path="/perfil" element={<Profile />} />
+            <Route path="/arriendo" element={<Arriendo />} />
           </Routes>
         </main>
         <Footer />
