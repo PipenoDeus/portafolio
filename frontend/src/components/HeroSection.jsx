@@ -5,8 +5,8 @@ function HeroSection() {
   return (
     <div className="hero-section">
       <div className="hero-text">
-        <h1>SparringLab</h1>
-        <p>Donde nacen los campeones</p>
+        <h1 className="fade-in">SparringLab</h1>
+        <p className="fade-in">Donde nacen los campeones</p>
       </div>
     </div>
   );
