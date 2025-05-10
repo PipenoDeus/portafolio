@@ -10,6 +10,7 @@ from django.http import HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 import json
 from django.http import JsonResponse
+from django.db import models
 
 
 def login(request):
@@ -257,4 +258,18 @@ def api_register(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-    
+
+@csrf_exempt   
+def obtener_gimnasios(request):
+    try:
+        # Obtener los gimnasios desde la base de datos de Supabase
+        result = supabase.table("gimnasios").select("*").execute()
+
+        if result.data:
+            gimnasios = result.data  # Los datos de los gimnasios
+            return JsonResponse(gimnasios, safe=False, status=200)
+        else:
+            return JsonResponse({'error': 'No se encontraron gimnasios'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

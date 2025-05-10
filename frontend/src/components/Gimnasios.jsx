@@ -1,27 +1,32 @@
 import React, { useEffect, useState } from 'react';
-import supabase from '../connection/supabaseClient';
 
 const Gimnasios = () => {
   const [gimnasios, setGimnasios] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchGimnasios = async () => {
-      const { data, error } = await supabase.from('gimnasios').select('*');
-
-      if (error) {
-        console.error('Error al obtener gimnasios:', error);
-      } else {
+      try {
+        const response = await fetch('http://localhost:8000/api/gimnasios/');
+        if (!response.ok) {
+          throw new Error('Error al obtener los gimnasios');
+        }
+        const data = await response.json();
         setGimnasios(data);
+      } catch (error) {
+        setError(error.message);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     fetchGimnasios();
   }, []);
 
   if (loading) return <p>Cargando gimnasios...</p>;
+
+  if (error) return <p>{`Error: ${error}`}</p>;
 
   return (
     <div className="container mt-4">
