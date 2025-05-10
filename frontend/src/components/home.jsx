@@ -1,4 +1,3 @@
-// components/Home.jsx
 import HeroSection from './HeroSection';
 import ActivitiesSection from './ActivitiesSections';
 import HeroSection2 from './HeroSection2';

@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import bcrypt from 'bcryptjs';
 import supabase from '../connection/supabaseClient';
 
 const Register = () => {
@@ -9,8 +8,7 @@ const Register = () => {
     first_name: '',
     last_name: '',
     city: '',
-    height_cm: '',
-    weight_kg: '',
+    birthdate: '',
   });
 
   const handleChange = (e) => {
@@ -24,17 +22,16 @@ const Register = () => {
     e.preventDefault();
 
     try {
-      const hashedPassword = await bcrypt.hash(formData.password, 10);
 
-      const { error } = await supabase.from('boxer_profiles').insert([
+      const { error } = await supabase.from('user_profiles').insert([
         {
           email: formData.email,
-          password: hashedPassword,
+          password: formData.password,
           first_name: formData.first_name,
           last_name: formData.last_name,
           city: formData.city,
-          height_cm: formData.height_cm,
-          weight_kg: formData.weight_kg,
+          birthdate: formData.birthdate,
+          membresy: false,
         },
       ]);
 
@@ -76,12 +73,8 @@ const Register = () => {
               <input type="text" className="form-control" name="city" value={formData.city} onChange={handleChange} required />
             </div>
             <div className="mb-3">
-              <label className="form-label">Altura (cm)</label>
-              <input type="number" className="form-control" name="height_cm" value={formData.height_cm} onChange={handleChange} required />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Peso (kg)</label>
-              <input type="number" className="form-control" name="weight_kg" value={formData.weight_kg} onChange={handleChange} required />
+              <label className="form-label">Fecha de Nacimiento</label>
+              <input type="date" className="form-control" name="birthdate" value={formData.birthdate} onChange={handleChange} required />
             </div>
             <button type="submit" className="btn btn-dark w-100">Registrarse</button>
           </form>

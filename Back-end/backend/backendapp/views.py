@@ -7,6 +7,9 @@ from django.http import JsonResponse
 from datetime import datetime, timedelta
 from django.contrib import messages
 from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
+import json
+from django.http import JsonResponse
 
 
 def login(request):
@@ -184,3 +187,74 @@ def reservation_events(request):
         })
 
     return JsonResponse(events, safe=False)
+
+
+
+
+@csrf_exempt
+def api_login(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        email = body.get('email')
+        password = body.get('password')
+
+        result = supabase.table("user_profiles").select("*").eq("email", email).single().execute()
+
+        if result.data:
+            user = result.data
+            if password == user['password']:  
+                return JsonResponse({'user': user}, status=200)
+            else:
+                return JsonResponse({'error': 'Contraseña inválida'}, status=401)
+        else:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+def api_register(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        email = body.get('email')
+        password = body.get('password')
+        first_name = body.get('first_name')
+        last_name = body.get('last_name')
+        city = body.get('city')
+        birthdate = body.get('birthdate')  
+        avatar_url = body.get('avatar_url', '')
+        membresy = body.get('membresy', False)
+
+
+        exists = supabase.table("user_profiles").select("id").eq("email", email).execute()
+        if exists.data:
+            return JsonResponse({'error': 'El correo ya está registrado'}, status=409)
+
+
+        result = supabase.table("user_profiles").insert({
+            "email": email,
+            "password": password,
+            "first_name": first_name,
+            "last_name": last_name,
+            "city": city,
+            "birthdate": birthdate,
+            "avatar_url": avatar_url,
+            "membresy": membresy,
+            "created_at": datetime.utcnow().isoformat()
+        }).execute()
+
+
+        if not result.data:
+            return JsonResponse({'error': 'No se pudo insertar el usuario'}, status=500)
+
+        return JsonResponse({'message': 'Usuario registrado exitosamente'}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    

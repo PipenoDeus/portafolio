@@ -28,8 +28,6 @@ const Profile = () => {
     const fileExt = file.name.split('.').pop();
     const fileName = `${user.id}.${fileExt}`;
     const filePath = fileName;
-    console.log('Archivo seleccionado:', file.name);
-    console.log('Ruta de almacenamiento:', filePath);
 
     const { error: uploadError } = await supabase.storage
       .from('avatars')
@@ -40,8 +38,6 @@ const Profile = () => {
       alert('Error al subir la imagen');
       return;
     }
-
-    console.log('Imagen subida con éxito');
 
     const { data: publicUrlData, error: publicUrlError } = await supabase
       .storage
@@ -55,10 +51,9 @@ const Profile = () => {
     }
 
     const newAvatarUrl = publicUrlData.publicUrl;
-    console.log('URL pública del avatar:', newAvatarUrl);
 
     const { error: updateError } = await supabase
-      .from('boxer_profiles')
+      .from('user_profiles')
       .update({ avatar_url: newAvatarUrl })
       .eq('email', user.email);
 
@@ -68,10 +63,8 @@ const Profile = () => {
       return;
     }
 
-    console.log('Avatar actualizado en la base de datos');
-
     const { data: updatedProfile, error: fetchError } = await supabase
-      .from('boxer_profiles')
+      .from('user_profiles')
       .select('*')
       .eq('email', user.email)
       .single();
@@ -81,8 +74,6 @@ const Profile = () => {
       alert('Error al obtener los datos actualizados');
       return;
     }
-
-    console.log('Perfil actualizado:', updatedProfile);
 
     setAvatarUrl(updatedProfile.avatar_url);
     updateUser({ ...user, ...updatedProfile });
@@ -113,11 +104,22 @@ const Profile = () => {
           <p><strong>Nombre:</strong> {user.first_name} {user.last_name}</p>
           <p><strong>Email:</strong> {user.email}</p>
           <p><strong>Ciudad:</strong> {user.city}</p>
-          <p><strong>Altura:</strong> {user.height_cm} cm</p>
-          <p><strong>Peso:</strong> {user.weight_kg} kg</p>
-          <p><strong>MMR:</strong> {user.mmr}</p>
-          <p><strong>Tipo de Membresía:</strong> {user.membership_type}</p>
-          <input type="file" accept="image/*" onChange={handleFileChange} />
+          <p><strong>Fecha de nacimiento:</strong> {user.birthdate}</p>
+          <p><strong>Fecha de creación:</strong> {new Date(user.created_at).toISOString().split('T')[0]}</p>
+          <p><strong>Membresía:</strong> {user.membership ? 'Premium' : 'Gratis'}</p>
+          <div className="mb-3">
+            <label htmlFor="avatarUpload" className="btn btn-primary">
+              Cambiar imagen de perfil
+            </label>
+            <input
+              id="avatarUpload"
+              type="file"
+              accept="image/*"
+              onChange={handleFileChange}
+              style={{ display: 'none' }}
+            />
+</div>
+
         </div>
       ) : (
         <p>Cargando perfil...</p>

@@ -24,7 +24,7 @@ function NavbarComponent() {
           <Nav className="ms-auto">
             {!user ? (
               <>
-                <Nav.Link as={Link} to="/sesion">Iniciar Sesión</Nav.Link>
+                <Nav.Link as={Link} to="/login">Iniciar Sesión</Nav.Link>
                 <Nav.Link as={Link} to="/registro">Registro</Nav.Link>
               </>
             ) : (

@@ -1,14 +1,12 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import supabase from '../connection/supabaseClient';
-import bcrypt from 'bcryptjs';
-import { useAuth } from '../context/AuthContext'; 
+import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  const { login } = useAuth(); 
+  const { login } = useAuth();
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -22,28 +20,26 @@ const Login = () => {
     setError('');
 
     try {
-      const { data, error: queryError } = await supabase
-        .from('boxer_profiles')
-        .select('*')
-        .eq('email', formData.email)
-        .single();
+      const response = await fetch('http://localhost:8000/api/login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-      if (queryError || !data) {
-        setError('Usuario no encontrado');
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || 'Error desconocido');
         return;
       }
 
-      const passwordMatch = await bcrypt.compare(formData.password, data.password);
-      if (!passwordMatch) {
-        setError('Contraseña incorrecta');
-        return;
-      }
-
-      login(data); 
+      login(result.user);  // Guarda los datos del usuario en el contexto
       navigate('/perfil');
     } catch (err) {
       console.error(err);
-      setError('Error al iniciar sesión');
+      setError('Error al conectar con el servidor');
     }
   };
 
