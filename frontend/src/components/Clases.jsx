@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import supabase from '../connection/supabaseClient';
 
 const Clases = () => {
   const [clases, setClases] = useState([]);
@@ -7,15 +6,18 @@ const Clases = () => {
 
   useEffect(() => {
     const fetchClases = async () => {
-      const { data, error } = await supabase.from('clases').select('*');
-
-      if (error) {
-        console.error('Error al obtener clases:', error);
-      } else {
+      try {
+        const response = await fetch('http://localhost:8000/api/clases/');
+        if (!response.ok) {
+          throw new Error('Error al obtener clases');
+        }
+        const data = await response.json();
         setClases(data);
+      } catch (error) {
+        console.error('Error:', error);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     fetchClases();

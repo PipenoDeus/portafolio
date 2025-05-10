@@ -273,3 +273,14 @@ def obtener_gimnasios(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+def obtener_clases(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        result = supabase.table("clases").select("*").execute()
+        return JsonResponse(result.data, safe=False)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
