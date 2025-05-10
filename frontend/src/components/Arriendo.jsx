@@ -80,7 +80,7 @@ const Reservas = () => {
 
   return (
     <div className="container mt-4">
-      <h2>Reservar Ring</h2>
+      <h2>Reservar</h2>
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <label>Selecciona un Ring:</label>

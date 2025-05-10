@@ -12,6 +12,9 @@ import Profile from './components/Profile.jsx';
 import Arriendo from './components/Arriendo.jsx'
 import Gimnasios from './components/Gimnasios.jsx';
 import Clases from './components/Clases.jsx';
+import AcercaDe from './components/acerca.jsx';
+import Contacto from './components/contacto.jsx';
+
 
 function App() {
   return (
@@ -27,6 +30,8 @@ function App() {
             <Route path="/arriendo" element={<Arriendo />} />
             <Route path="/gimnasios" element={<Gimnasios />} />
             <Route path="/clases" element={<Clases />} />
+            <Route path="/acerca" element={<AcercaDe />} />
+            <Route path="/contacto" element={<Contacto/>} />
           </Routes>
         </main>
         <Footer />

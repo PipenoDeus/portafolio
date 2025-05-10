@@ -33,8 +33,8 @@ function NavbarComponent() {
                 <Nav.Link as={Link} to="/gimnasios">Gimnasios</Nav.Link>
                 <Nav.Link as={Link} to="/rutinas">Rutinas</Nav.Link>
                 <Nav.Link as={Link} to="/arriendo">Reservas</Nav.Link>
-                <Nav.Link as={Link} to="/sparring">Sparring</Nav.Link>
                 <Nav.Link as={Link} to="/clases">Clases</Nav.Link>
+                <Nav.Link as={Link} to="/blog">Blog</Nav.Link>
                 <Nav.Link as={Link} to="/acerca">Acerca de</Nav.Link>
                 <Nav.Link as={Link} to="/contacto">Contacto</Nav.Link>
                 <Nav.Link onClick={handleLogout}>Cerrar Sesión</Nav.Link>
