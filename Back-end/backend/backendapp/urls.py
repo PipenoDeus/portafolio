@@ -1,7 +1,7 @@
 from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
-from .views import SparringReservationViewSet, api_login,api_register,obtener_gimnasios,obtener_clases
+from .views import SparringReservationViewSet, api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs
 
 router = DefaultRouter()
 router.register(r'sparring-reservations', SparringReservationViewSet)
@@ -29,4 +29,8 @@ urlpatterns = [
     path('api/register/', api_register),
     path('api/gimnasios/', obtener_gimnasios),
     path('api/clases/', obtener_clases),
+    path('api/reserva_ring',api_reservar_ring),
+    path('api/create-blog/', api_create_blog, name='create_blog'),
+    path('api/blogs/', api_get_blogs, name='api_get_blogs'),
+
 ]

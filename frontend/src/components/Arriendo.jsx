@@ -10,31 +10,37 @@ const Reservas = () => {
   const [horaInicio, setHoraInicio] = useState('');
   const [horaFin, setHoraFin] = useState('');
   const [boxerId, setBoxerId] = useState(null);
+  const [emailOponente, setEmailOponente] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const fetchRings = async () => {
     const { data, error } = await supabase.from('rings').select('*');
     if (error) {
       console.error('Error al obtener rings:', error.message);
+      setErrorMessage('Error al obtener rings');
     } else {
       setRings(data);
     }
   };
 
   const fetchBoxerProfile = async () => {
-    if (!user || !user.id) return;
+  if (!user || !user.id) return;
 
-    const { data, error } = await supabase
-      .from('boxer_profiles')
-      .select('id')
-      .eq('id', user.id)
-      .single();
+  const { data, error } = await supabase
+    .from('user_profiles') 
+    .select('id')
+    .eq('id', user.id) 
+    .single();
 
-    if (error) {
-      console.error('Error al obtener el perfil del boxeador:', error.message);
-    } else if (data) {
-      setBoxerId(data.id);
-    }
-  };
+  if (error) {
+    console.error('Error al obtener el perfil del boxeador:', error.message);
+    setErrorMessage('Error al obtener el perfil del boxeador');
+  } else if (data) {
+    setBoxerId(data.id);
+  }
+};
 
   useEffect(() => {
     if (user) {
@@ -46,8 +52,31 @@ const Reservas = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!boxerId || !selectedRing || !fecha || !horaInicio || !horaFin) {
+    if (!boxerId || !selectedRing || !fecha || !horaInicio || !horaFin || !emailOponente || !descripcion) {
       alert('Por favor, completa todos los campos.');
+      return;
+    }
+
+    setLoading(true);
+    setErrorMessage('');
+
+    const { data: reservas, error: conflictError } = await supabase
+      .from('reservas')
+      .select('*')
+      .eq('fecha', fecha)
+      .eq('ring_id', selectedRing)
+      .or(`hora_inicio.lte.${horaFin},hora_fin.gte.${horaInicio}`);
+
+    if (conflictError) {
+      console.error('Error al verificar conflictos:', conflictError.message);
+      setLoading(false);
+      setErrorMessage('Error al verificar conflictos de horario');
+      return;
+    }
+
+    if (reservas.length > 0) {
+      setLoading(false);
+      setErrorMessage('El ring ya está reservado en ese horario');
       return;
     }
 
@@ -59,8 +88,12 @@ const Reservas = () => {
         hora_inicio: horaInicio,
         hora_fin: horaFin,
         estado: 'pendiente',
+        oponente_email: emailOponente,
+        descripcion: descripcion,    
       },
     ]);
+
+    setLoading(false);
 
     if (error) {
       console.error('Error al guardar reserva:', error.message);
@@ -71,6 +104,8 @@ const Reservas = () => {
       setFecha('');
       setHoraInicio('');
       setHoraFin('');
+      setEmailOponente('');
+      setDescripcion('');
     }
   };
 
@@ -81,6 +116,8 @@ const Reservas = () => {
   return (
     <div className="container mt-4">
       <h2>Reservar</h2>
+      {errorMessage && <div className="alert alert-danger">{errorMessage}</div>}
+
       <form onSubmit={handleSubmit}>
         <div className="mb-3">
           <label>Selecciona un Ring:</label>
@@ -132,8 +169,33 @@ const Reservas = () => {
           />
         </div>
 
-        <button type="submit" className="btn btn-primary">
-          Reservar
+        <div className="mb-3">
+          <label>Email del Oponente:</label>
+          <input
+            type="email"
+            className="form-control"
+            value={emailOponente}
+            onChange={(e) => setEmailOponente(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="mb-3">
+          <label>Descripción:</label>
+          <textarea
+            className="form-control"
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            required
+          />
+        </div>
+
+        <button type="submit" className="btn btn-primary" disabled={loading}>
+          {loading ? (
+            <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+          ) : (
+            'Reservar'
+          )}
         </button>
       </form>
     </div>

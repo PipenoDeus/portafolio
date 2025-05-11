@@ -14,6 +14,7 @@ import Gimnasios from './components/Gimnasios.jsx';
 import Clases from './components/Clases.jsx';
 import AcercaDe from './components/acerca.jsx';
 import Contacto from './components/contacto.jsx';
+import Blogs from './components/Blog.jsx';
 
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
             <Route path="/clases" element={<Clases />} />
             <Route path="/acerca" element={<AcercaDe />} />
             <Route path="/contacto" element={<Contacto/>} />
+            <Route path="/blog" element={<Blogs/>} />
           </Routes>
         </main>
         <Footer />

@@ -284,3 +284,101 @@ def obtener_clases(request):
         return JsonResponse(result.data, safe=False)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+def api_reservar_ring(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        boxer_id = body.get('boxer_id')
+        ring_id = body.get('ring_id')
+        fecha = body.get('fecha')
+        hora_inicio = body.get('hora_inicio')
+        hora_fin = body.get('hora_fin')
+        oponente_email = body.get('oponente_email')
+        descripcion = body.get('descripcion')
+
+        if not all([boxer_id, ring_id, fecha, hora_inicio, hora_fin]):
+            return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
+
+        # Verificar si el email del oponente existe
+        if oponente_email:
+            oponente = supabase.table("user_profiles").select("email").eq("email", oponente_email).execute()
+
+            if not oponente.data:
+                return JsonResponse({'error': 'El email del oponente no está registrado'}, status=404)
+
+        # Verificar conflictos de reservas
+        conflictos = supabase.table("reservas").select("*")\
+            .eq("fecha", fecha)\
+            .eq("ring_id", ring_id)\
+            .or_(f"hora_inicio.lte.{hora_fin},hora_fin.gte.{hora_inicio}")\
+            .execute()
+
+        if conflictos.data:
+            return JsonResponse({'error': 'El ring ya está reservado en ese horario'}, status=409)
+
+        # Crear la reserva
+        result = supabase.table("reservas").insert({
+            "boxer_id": boxer_id,
+            "ring_id": ring_id,
+            "fecha": fecha,
+            "hora_inicio": hora_inicio,
+            "hora_fin": hora_fin,
+            "oponente_email": oponente_email,
+            "descripcion": descripcion,
+            "estado": "pendiente",
+            "created_at": datetime.utcnow().isoformat()
+        }).execute()
+
+        if not result.data:
+            return JsonResponse({'error': 'No se pudo crear la reserva'}, status=500)
+
+        return JsonResponse({'message': 'Reserva registrada exitosamente'}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def api_create_blog(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        titulo = body.get('titulo')
+        contenido = body.get('contenido')
+        user_id = body.get('user_id')
+
+        if not all([titulo, contenido, user_id]):
+            return JsonResponse({'error': 'Faltan campos'}, status=400)
+
+        result = supabase.table("blogs").insert([{
+            "titulo": titulo,
+            "contenido": contenido,
+            "user_id": user_id,
+            "aprobado": False  
+        }]).execute()
+
+        return JsonResponse({'message': 'Blog creado', 'data': result.data}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+def api_get_blogs(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        result = supabase.table("blogs")\
+                         .select("*")\
+                         .eq("aprobado", True)\
+                         .order("fecha_creacion", desc=True)\
+                         .execute()
+
+        return JsonResponse({'blogs': result.data}, safe=False, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
