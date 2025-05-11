@@ -15,7 +15,8 @@ import Clases from './components/Clases.jsx';
 import AcercaDe from './components/acerca.jsx';
 import Contacto from './components/contacto.jsx';
 import Blogs from './components/Blog.jsx';
-
+import PrivateLayout from './components/PrivateLayout';
+import NotFound from './components/NotFound';
 
 function App() {
   return (
@@ -24,16 +25,22 @@ function App() {
         <NavbarComponent />
         <main style={{ flex: 1 }}>
           <Routes>
+            {/* Rutas públicas */}
             <Route path="/" element={<Home />} />
             <Route path="/registro" element={<Register />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/perfil" element={<Profile />} />
-            <Route path="/arriendo" element={<Arriendo />} />
-            <Route path="/gimnasios" element={<Gimnasios />} />
-            <Route path="/clases" element={<Clases />} />
             <Route path="/acerca" element={<AcercaDe />} />
-            <Route path="/contacto" element={<Contacto/>} />
-            <Route path="/blog" element={<Blogs/>} />
+            <Route path="/contacto" element={<Contacto />} />
+            <Route path="*" element={<NotFound />} />
+
+            {/* Rutas privadas */}
+            <Route element={<PrivateLayout />}>
+              <Route path="/perfil" element={<Profile />} />
+              <Route path="/arriendo" element={<Arriendo />} />
+              <Route path="/gimnasios" element={<Gimnasios />} />
+              <Route path="/clases" element={<Clases />} />
+              <Route path="/blog" element={<Blogs />} />
+            </Route>
           </Routes>
         </main>
         <Footer />

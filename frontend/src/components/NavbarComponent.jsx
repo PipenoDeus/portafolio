@@ -26,6 +26,8 @@ function NavbarComponent() {
               <>
                 <Nav.Link as={Link} to="/login">Iniciar Sesión</Nav.Link>
                 <Nav.Link as={Link} to="/registro">Registro</Nav.Link>
+                <Nav.Link as={Link} to="/acerca">Acerca de</Nav.Link>
+                <Nav.Link as={Link} to="/contacto">Contacto</Nav.Link>
               </>
             ) : (
               <>
