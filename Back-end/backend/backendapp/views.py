@@ -259,6 +259,61 @@ def api_register(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+@csrf_exempt
+def api_update_user(request):
+    if request.method != 'PUT':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        email = body.get('email')  # identificador para buscar al usuario
+
+        if not email:
+            return JsonResponse({'error': 'Falta el campo email'}, status=400)
+
+        # Campos que se pueden actualizar
+        update_data = {}
+        for field in ['first_name', 'last_name', 'city', 'birthdate', 'avatar_url', 'membresy', 'password']:
+            if field in body:
+                update_data[field] = body[field]
+
+        if not update_data:
+            return JsonResponse({'error': 'No se proporcionaron datos para actualizar'}, status=400)
+
+        # Intentar actualizar el usuario
+        result = supabase.table("user_profiles").update(update_data).eq("email", email).execute()
+
+        if result.data:
+            return JsonResponse({'message': 'Usuario actualizado exitosamente', 'user': result.data}, status=200)
+        else:
+            return JsonResponse({'error': 'No se encontró el usuario para actualizar'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def api_delete_user(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        email = body.get('email')
+
+        if not email:
+            return JsonResponse({'error': 'Falta el campo email'}, status=400)
+
+        # Elimina el perfil del usuario en la tabla personalizada
+        result = supabase.table("user_profiles").delete().eq("email", email).execute()
+
+        if result.data:
+            return JsonResponse({'message': 'Usuario eliminado exitosamente'}, status=200)
+        else:
+            return JsonResponse({'error': 'No se encontró el usuario para eliminar'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 @csrf_exempt   
 def obtener_gimnasios(request):
     try:
