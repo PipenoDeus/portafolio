@@ -17,6 +17,7 @@ import Contacto from './components/contacto.jsx';
 import Blogs from './components/Blog.jsx';
 import PrivateLayout from './components/PrivateLayout';
 import NotFound from './components/NotFound';
+import Rutinas from './components/Rutinas.jsx';
 
 function App() {
   return (
@@ -40,6 +41,7 @@ function App() {
               <Route path="/gimnasios" element={<Gimnasios />} />
               <Route path="/clases" element={<Clases />} />
               <Route path="/blog" element={<Blogs />} />
+              <Route path="/rutinas" element={<Rutinas />} />
             </Route>
           </Routes>
         </main>

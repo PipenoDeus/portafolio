@@ -107,6 +107,7 @@ const Profile = () => {
           <p><strong>Fecha de nacimiento:</strong> {user.birthdate}</p>
           <p><strong>Fecha de creación:</strong> {new Date(user.created_at).toISOString().split('T')[0]}</p>
           <p><strong>Membresía:</strong> {user.membership ? 'Premium' : 'Gratis'}</p>
+          <p><strong>Rol:</strong> {user.rol}</p>
           <div className="mb-3">
             <label htmlFor="avatarUpload" className="btn btn-primary">
               Cambiar imagen de perfil

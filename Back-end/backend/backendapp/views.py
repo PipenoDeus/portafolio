@@ -382,3 +382,54 @@ def api_get_blogs(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def api_create_rutina(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        body = json.loads(request.body)
+        nombre = body.get('nombre')
+        descripcion = body.get('descripcion')
+        nivel = body.get('nivel')
+        entrenador_id = body.get('entrenador_id')
+
+        if not all([nombre, descripcion, nivel, entrenador_id]):
+            return JsonResponse({'error': 'Faltan campos'}, status=400)
+
+        # Verificar que el entrenador_id sea un usuario con rol válido
+        user_check = supabase.table("user_profiles").select("rol").eq("id", entrenador_id).single().execute()
+        if user_check.data is None:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        rol = user_check.data.get('rol')
+        if rol not in ['entrenador', 'admin']:
+            return JsonResponse({'error': f'Permiso denegado: rol inválido ({rol})'}, status=403)
+
+        # Insertar la rutina
+        result = supabase.table("rutinas").insert([{
+            "nombre": nombre,
+            "descripcion": descripcion,
+            "nivel": nivel,
+            "entrenador_id": entrenador_id
+        }]).execute()
+
+        return JsonResponse({'message': 'Rutina creada', 'data': result.data}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+@csrf_exempt
+def api_get_rutinas(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        result = supabase.table("rutinas").select("*").execute()
+        rutinas = result.data
+
+        return JsonResponse({'rutinas': rutinas}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

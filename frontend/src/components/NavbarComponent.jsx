@@ -10,10 +10,10 @@ function NavbarComponent() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => {
-    logout();
-    navigate('/sesion');
-  };
+const handleLogout = () => {
+  logout();
+  navigate('/');
+};
 
   return (
     <Navbar className="navbar-black" variant="dark" expand="lg">
