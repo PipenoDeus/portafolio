@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import supabase from '../connection/supabaseClient';
 
 const Reservas = () => {
-  const { user } = useAuth();
+  const { user, token } = useAuth();
+  console.log("Token:", token);
   const [rings, setRings] = useState([]);
   const [selectedRing, setSelectedRing] = useState('');
   const [fecha, setFecha] = useState('');
@@ -80,8 +81,18 @@ const Reservas = () => {
       return;
     }
 
-    const { error } = await supabase.from('reservas').insert([
-      {
+    // Ahora que tenemos el token del contexto, lo agregamos a las cabeceras
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+    };
+    console.log("Headers enviados:", headers);
+
+    // Realizamos la reserva llamando al backend (API)
+    const response = await fetch('http://localhost:8000/api/reserva_ring', {
+      method: 'POST',
+      headers: headers,
+      body: JSON.stringify({
         boxer_id: boxerId,
         ring_id: selectedRing,
         fecha,
@@ -89,16 +100,15 @@ const Reservas = () => {
         hora_fin: horaFin,
         estado: 'pendiente',
         oponente_email: emailOponente,
-        descripcion: descripcion,    
-      },
-    ]);
+        descripcion: descripcion,
+      }),
+    });
+
+    const data = await response.json();
 
     setLoading(false);
 
-    if (error) {
-      console.error('Error al guardar reserva:', error.message);
-      alert('Error al guardar reserva');
-    } else {
+    if (response.ok) {
       alert('Reserva registrada con éxito');
       setSelectedRing('');
       setFecha('');
@@ -106,8 +116,11 @@ const Reservas = () => {
       setHoraFin('');
       setEmailOponente('');
       setDescripcion('');
+    } else {
+      console.error('Error al guardar reserva:', data.error);
+      setErrorMessage(data.error || 'Error al guardar reserva');
     }
-  };
+};
 
   if (!user) {
     return <p>Cargando usuario...</p>;

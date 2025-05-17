@@ -5,15 +5,23 @@ import supabase from '../connection/supabaseClient';
 
 const Profile = () => {
   const { user, updateUser } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  
   const [formData, setFormData] = useState({
+    email: '',
     first_name: '',
     last_name: '',
     city: '',
-    birthdate: ''
+    birthdate: '',
+    created_at: '',
+    membership: false,
+    rol: ''
   });
+
+  const [showDeleteWarning, setShowDeleteWarning] = useState(false); // Estado para la advertencia
 
   useEffect(() => {
     if (!user) {
@@ -26,7 +34,11 @@ const Profile = () => {
         first_name: user.first_name || '',
         last_name: user.last_name || '',
         city: user.city || '',
-        birthdate: user.birthdate || ''
+        birthdate: user.birthdate || '',
+        email: user.email || '',
+        created_at: user.created_at || '',
+        membership: user.membership || false,
+        rol: user.rol || ''
       });
     }
   }, [user, navigate]);
@@ -61,13 +73,14 @@ const Profile = () => {
     }
 
     const newAvatarUrl = publicUrlData.publicUrl;
+    console.log('URL pública del avatar:', newAvatarUrl);
 
-    const { error: updateError } = await supabase
+    const { error: updateError, status } = await supabase
       .from('user_profiles')
       .update({ avatar_url: newAvatarUrl })
       .eq('email', user.email);
 
-    if (updateError) {
+    if (updateError || status !== 204) {
       console.error("Error actualizando avatar en la base de datos:", updateError);
       alert('Error al guardar la URL en la base de datos');
       return;
@@ -85,7 +98,9 @@ const Profile = () => {
       return;
     }
 
+    console.log('Perfil actualizado:', updatedProfile);
     setAvatarUrl(updatedProfile.avatar_url);
+    console.log('Llamando a updateUser con:', { ...user, ...updatedProfile });
     updateUser({ ...user, ...updatedProfile });
 
     alert('Imagen de perfil actualizada');
@@ -99,21 +114,30 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-    const { error: updateError } = await supabase
+    console.log('Guardando cambios para el perfil:', formData);
+
+    const { error: updateError, status } = await supabase
       .from('user_profiles')
-      .update(formData)
+      .update({
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        city: formData.city,
+        birthdate: formData.birthdate,
+        email: formData.email // Actualización del email
+      })
       .eq('email', user.email);
 
-    if (updateError) {
+    if (updateError || status !== 204) {
       console.error("Error al actualizar perfil:", updateError);
       alert('Error al actualizar el perfil');
       return;
     }
 
+    // Aquí se obtiene el perfil actualizado con el nuevo email
     const { data: updatedProfile, error: fetchError } = await supabase
       .from('user_profiles')
       .select('*')
-      .eq('email', user.email)
+      .eq('email', formData.email) // Cambiar para usar el nuevo email
       .single();
 
     if (fetchError || !updatedProfile) {
@@ -122,40 +146,56 @@ const Profile = () => {
       return;
     }
 
+    console.log('Perfil actualizado:', updatedProfile);
+
+    // Actualizar el estado del usuario en el contexto (actualiza el email en el frontend)
     updateUser({ ...user, ...updatedProfile });
+
     setIsEditing(false);
     alert('Perfil actualizado con éxito');
   };
 
   const handleDeleteAccount = async () => {
-    const confirmDelete = window.confirm("¿Deseas borrar de forma permanente tu cuenta?");
-    if (!confirmDelete) return;
-
     try {
-      const response = await fetch('http://localhost:8000/api/delete_user/', {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email: user.email }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.error('Error al eliminar cuenta:', data.error || 'Error desconocido');
-        alert(data.error || 'Error al eliminar la cuenta');
-        return;
-      }
-
-      alert('Tu cuenta ha sido eliminada exitosamente');
-      navigate('/sesion'); // o redirige a donde quieras después del borrado
-
-    } catch (error) {
-      console.error('Error de red:', error);
-      alert('Hubo un problema al comunicarse con el servidor');
+      // Mostrar la advertencia de confirmación
+      setShowDeleteWarning(true);
+    } catch (err) {
+      console.error('❌ Error en la solicitud de eliminación de cuenta:', err);
     }
   };
+
+  const confirmDeleteAccount = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      console.log('❌ Token no encontrado');
+      return;
+    }
+
+    console.log('🗑️ Eliminando cuenta para el email:', user.email);
+
+    const response = await fetch('http://localhost:8000/api/delete_user/', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ email: user.email }),
+    });
+
+    if (response.ok) {
+      console.log('✅ Cuenta eliminada correctamente');
+      logout(); // << reinicia estado del contexto
+      window.location.replace('/'); // << fuerza recarga total
+    } else {
+      const error = await response.json();
+      console.error('⚠️ Error al eliminar cuenta:', error);
+    }
+
+  } catch (err) {
+    console.error('❌ Error en la solicitud de eliminación de cuenta:', err);
+  }
+};
 
   return (
     <div className="container mt-5">
@@ -190,7 +230,6 @@ const Profile = () => {
             />
           </div>
           
-
           {!isEditing ? (
             <>
               <p><strong>Nombre:</strong> {user.first_name} {user.last_name}</p>
@@ -204,11 +243,20 @@ const Profile = () => {
                 Editar perfil
               </button>
               <button className="btn btn-danger mt-3 ms-2" onClick={handleDeleteAccount}>
-              Eliminar cuenta
+                Eliminar cuenta
               </button>
             </>
           ) : (
             <>
+              <div className="form-group">
+                <label>Email</label>
+                <input
+                  className="form-control"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </div>
               <div className="form-group">
                 <label>Nombre</label>
                 <input
@@ -246,6 +294,11 @@ const Profile = () => {
                   onChange={handleChange}
                 />
               </div>
+
+              <input type="hidden" name="created_at" value={formData.created_at} />
+              <input type="hidden" name="membership" value={formData.membership} />
+              <input type="hidden" name="rol" value={formData.rol} />
+
               <button className="btn btn-success mt-3" onClick={handleSave}>
                 Guardar cambios
               </button>
@@ -253,6 +306,18 @@ const Profile = () => {
                 Cancelar
               </button>
             </>
+          )}
+
+          {showDeleteWarning && (
+            <div className="alert alert-danger mt-3">
+              <strong>¡Advertencia!</strong> ¿Estás seguro de que deseas eliminar tu cuenta de forma permanente?
+              <button className="btn btn-danger ms-2" onClick={confirmDeleteAccount}>
+                Confirmar eliminación
+              </button>
+              <button className="btn btn-secondary ms-2" onClick={() => setShowDeleteWarning(false)}>
+                Cancelar
+              </button>
+            </div>
           )}
         </div>
       ) : (

@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+// App.jsx
+import { Routes, Route } from 'react-router-dom';
 
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
@@ -9,7 +10,7 @@ import Register from './components/Register.jsx';
 import Login from './components/login.jsx';
 import Home from './components/home.jsx';
 import Profile from './components/Profile.jsx';
-import Arriendo from './components/Arriendo.jsx'
+import Arriendo from './components/Arriendo.jsx';
 import Gimnasios from './components/Gimnasios.jsx';
 import Clases from './components/Clases.jsx';
 import AcercaDe from './components/acerca.jsx';
@@ -18,35 +19,35 @@ import Blogs from './components/Blog.jsx';
 import PrivateLayout from './components/PrivateLayout';
 import NotFound from './components/NotFound';
 import Rutinas from './components/Rutinas.jsx';
+import PanelAdmin from './components/PanelAdmin.jsx';
 
 function App() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <Router>
-        <NavbarComponent />
-        <main style={{ flex: 1 }}>
-          <Routes>
-            {/* Rutas públicas */}
-            <Route path="/" element={<Home />} />
-            <Route path="/registro" element={<Register />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/acerca" element={<AcercaDe />} />
-            <Route path="/contacto" element={<Contacto />} />
-            <Route path="*" element={<NotFound />} />
+      <NavbarComponent />
+      <main style={{ flex: 1 }}>
+        <Routes>
+          {/* Rutas públicas */}
+          <Route path="/" element={<Home />} />
+          <Route path="/registro" element={<Register />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/acerca" element={<AcercaDe />} />
+          <Route path="/contacto" element={<Contacto />} />
+          <Route path="*" element={<NotFound />} />
 
-            {/* Rutas privadas */}
-            <Route element={<PrivateLayout />}>
-              <Route path="/perfil" element={<Profile />} />
-              <Route path="/arriendo" element={<Arriendo />} />
-              <Route path="/gimnasios" element={<Gimnasios />} />
-              <Route path="/clases" element={<Clases />} />
-              <Route path="/blog" element={<Blogs />} />
-              <Route path="/rutinas" element={<Rutinas />} />
-            </Route>
-          </Routes>
-        </main>
-        <Footer />
-      </Router>
+          {/* Rutas privadas */}
+          <Route element={<PrivateLayout />}>
+            <Route path="/perfil" element={<Profile />} />
+            <Route path="/arriendo" element={<Arriendo />} />
+            <Route path="/gimnasios" element={<Gimnasios />} />
+            <Route path="/clases" element={<Clases />} />
+            <Route path="/blog" element={<Blogs />} />
+            <Route path="/rutinas" element={<Rutinas />} />
+            <Route path="/PanelAdmin" element={<PanelAdmin />} />
+          </Route>
+        </Routes>
+      </main>
+      <Footer />
     </div>
   );
 }

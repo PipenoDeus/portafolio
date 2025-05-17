@@ -7,6 +7,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
+  
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -16,32 +17,64 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
+  e.preventDefault();
+  setError('');
 
-    try {
-      const response = await fetch('http://localhost:8000/api/login/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+  console.log('📤 Enviando datos al backend:', formData);  // <-- input del formulario
 
-      const result = await response.json();
+  try {
+    const response = await fetch('http://localhost:8000/api/login/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+      credentials: 'include',
+    });
 
-      if (!response.ok) {
-        setError(result.error || 'Error desconocido');
-        return;
-      }
+    console.log('📥 Estado de respuesta HTTP:', response.status); // <-- código HTTP
 
-      login(result.user);  // Guarda los datos del usuario en el contexto
-      navigate('/perfil');
-    } catch (err) {
-      console.error(err);
-      setError('Error al conectar con el servidor');
+    const result = await response.json();
+    console.log('📥 Respuesta del backend:', result); // <-- JSON completo recibido
+
+    if (!response.ok) {
+      console.warn('⚠️ Error devuelto por el backend:', result.error);
+      setError(result.error || 'Error desconocido');
+      return;
     }
-  };
+
+    const { user, token } = result;
+    console.log('✅ Usuario recibido:', user);
+
+    if (user && user.email && user.rol) {
+      localStorage.setItem('email', user.email);
+      localStorage.setItem('role', user.rol);
+      localStorage.setItem('token', token);
+      
+
+      console.log('💾 Email guardado en localStorage:', localStorage.getItem('email'));
+      console.log('💾 Rol guardado en localStorage:', localStorage.getItem('role'));
+
+      login(user, token);  // <-- Aquí se pasa el user y token al contexto
+
+      // Redirección según rol
+      if (user.rol === 'admin') {
+        console.log('🔀 Redirigiendo a /PanelAdmin');
+        navigate('/PanelAdmin');
+      } else {
+        console.log('🔀 Redirigiendo a /perfil');
+        navigate('/perfil');
+      }
+    } else {
+      console.warn('⚠️ Usuario inválido o incompleto:', user);
+      setError('Datos del usuario incompletos');
+    }
+  } catch (err) {
+    console.error('❌ Error de red o servidor:', err);
+    setError('Error al conectar con el servidor');
+  }
+};
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>

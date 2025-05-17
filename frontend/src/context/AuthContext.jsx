@@ -1,47 +1,67 @@
-import { createContext, useContext, useEffect, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
+  const [token, setToken] = useState(null);
   const [user, setUser] = useState(null);
+  const [role, setRole] = useState(null);  // Añadimos un estado para el rol
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const navigate = useNavigate();
 
-  // Recuperar usuario desde localStorage al iniciar
   useEffect(() => {
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      const parsedUser = JSON.parse(storedUser);
-      setUser(parsedUser);
-    }
-  }, []);
+  const storedToken = localStorage.getItem('token');
+  if (storedToken) {
+    setToken(storedToken); 
+    fetch('/api/user/me', {
+      headers: {
+        Authorization: `Bearer ${storedToken}`
+      }
+    })
+    .then(res => res.json())
+    .then(data => {
+      setUser(data);
+      setRole(data.rol);
+      setIsAuthenticated(true);
+    })
+    .catch(() => {
+      logout();
+    });
+  }
+}, []);
 
-  // Iniciar sesión
-  const login = (userData) => {
-    localStorage.setItem('user', JSON.stringify(userData));
-    setUser(userData);
-  };
 
-  // Cerrar sesión
+  const login = async (userData, token) => {
+  localStorage.setItem('user', JSON.stringify(userData));
+  localStorage.setItem('token', token);
+  setUser(userData);
+  setRole(userData.rol);
+  setToken(token); 
+  setIsAuthenticated(true);
+  navigate('/');
+};
+
   const logout = () => {
-    localStorage.removeItem('user');
-    setUser(null);
-  };
-
-  // Actualizar datos del usuario
+  localStorage.removeItem('user');
+  localStorage.removeItem('token');
+  setUser(null);
+  setRole(null);
+  setIsAuthenticated(false);
+  window.location.replace('/');
+};
   const updateUser = (newUserData) => {
     const updatedUser = { ...user, ...newUserData };
     setUser(updatedUser);
+    setRole(updatedUser.rol); // Actualizar el rol también
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 
-  // Acceso directo al rol (si existe)
-  const role = user?.rol || null;
-
   return (
-    <AuthContext.Provider value={{ user, role, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, role, token, login, logout, updateUser, isAuthenticated }}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook personalizado
 export const useAuth = () => useContext(AuthContext);

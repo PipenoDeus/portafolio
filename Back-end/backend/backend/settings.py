@@ -1,15 +1,28 @@
 from pathlib import Path
+from datetime import timedelta
+from decouple import config
+from supabase import create_client, Client
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+
 BASE_DIR = Path(__file__).resolve().parent.parent
-SECRET_KEY = 'django-insecure-wwb_j+7d=z+^a)u&$ce$&q&ul%6k^)pe04j!sbo3hp1cuwq_1l'
+
+# JWT
+JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'fallback_key_if_not_set')
+JWT_ALGORITHM = config('JWT_ALGORITHM')
+
+# Django
+SECRET_KEY = config('SECRET_KEY')
+
+# Supabase
+SUPABASE_URL = config('SUPABASE_URL')
+SUPABASE_KEY = config('SUPABASE_KEY')
+
+
 DEBUG = True
 ALLOWED_HOSTS = []
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
-
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -20,9 +33,25 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'backendapp',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework.authtoken',
     'corsheaders',
-    
 ]
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+    ],
+}
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': JWT_SECRET_KEY,
+    'ALGORITHM': JWT_ALGORITHM,
+}
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -33,9 +62,12 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'corsheaders.middleware.CorsMiddleware',
-    
 ]
 
+CSRF_COOKIE_SECURE = True  # Solo se enviará en conexiones HTTPS
+CSRF_COOKIE_HTTPONLY = False  # Debe ser accesible desde JavaScript
+CSRF_COOKIE_NAME = 'csrftoken'  # El nombre de la cookie CSRF
+CSRF_COOKIE_SAMESITE = 'Lax'  # Establece SameSite para prevenir CSRF
 ROOT_URLCONF = 'backend.urls'
 
 TEMPLATES = [
@@ -54,28 +86,37 @@ TEMPLATES = [
     },
 ]
 
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:3000',  # Frontend (React)
+]
+
+# Permite el uso de credenciales (cookies o JWT)
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_HEADERS = [
+    'content-type',
+    'authorization',
+]
+
+CORS_ALLOW_METHODS = [
+    'GET', 'POST', 'PUT', 'DELETE', 'OPTIONS',
+]
+
 WSGI_APPLICATION = 'backend.wsgi.application'
 
-
 # Database
-# https://docs.djangoproject.com/en/5.0/ref/settings/#databases
-
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'postgres',     
-        'USER': 'postgres.xtckolxiipfxnstcbofm',
-        'PASSWORD': 'T8qcNCblkeED4XH4',
-        'HOST': 'aws-0-us-east-2.pooler.supabase.com',      
-        'PORT': '5432',
-        'POOL_MODE':'SESSION'
+        'NAME': config('DB_NAME'),
+        'USER': config('DB_USER'),
+        'PASSWORD': config('DB_PASSWORD'),
+        'HOST': config('DB_HOST'),
+        'PORT': config('DB_PORT'),
     }
 }
 
-
 # Password validation
-# https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
@@ -91,29 +132,14 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
-# https://docs.djangoproject.com/en/5.0/topics/i18n/
-
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
 # Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.0/howto/static-files/
-
 STATIC_URL = 'static/'
 
 # Default primary key field type
-# https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # React dev server
-]

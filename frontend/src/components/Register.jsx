@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import supabase from '../connection/supabaseClient';
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -19,32 +18,30 @@ const Register = () => {
   };
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
 
-    try {
+  try {
+    const response = await fetch('http://localhost:8000/api/register/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
 
-      const { error } = await supabase.from('user_profiles').insert([
-        {
-          email: formData.email,
-          password: formData.password,
-          first_name: formData.first_name,
-          last_name: formData.last_name,
-          city: formData.city,
-          birthdate: formData.birthdate,
-          membresy: false,
-        },
-      ]);
+    const data = await response.json();
 
-      if (error) {
-        alert('Error al crear perfil: ' + error.message);
-      } else {
-        alert('¡Registro exitoso!');
-      }
-    } catch (err) {
-      console.error('Error al hashear la contraseña', err);
-      alert('Ocurrió un error al registrar.');
+    if (response.ok) {
+      alert('¡Registro exitoso!');
+    } else {
+      alert('Error: ' + data.error);
     }
-  };
+  } catch (err) {
+    console.error('Error al registrar', err);
+    alert('Ocurrió un error al registrar.');
+  }
+};
+
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
