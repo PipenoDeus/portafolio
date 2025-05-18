@@ -455,7 +455,7 @@ def api_get_rutinas(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
     
- # ======================== PANEL ADMIN ======================== 
+# ======================== PANEL ADMIN ======================== 
 # ======================== VERIFY TOKEN ========================
 @csrf_exempt
 def api_verify_token(request):
@@ -622,5 +622,112 @@ def admin_delete_user(request):
         return JsonResponse({'error': 'Token expirado'}, status=401)
     except jwt.InvalidTokenError:
         return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== AGREGAR GYMNASIO ========================
+@csrf_exempt
+def api_list_gimnasios(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        result = supabase.table("gimnasios").select("*").execute()
+
+        if isinstance(result.data, list):
+            return JsonResponse(result.data, safe=False, status=200)
+        else:
+            return JsonResponse({'error': 'No se encontraron gimnasios'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== MOSTRAR GYMNASIO ========================
+@csrf_exempt
+def api_create_gimnasio(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        data = json.loads(request.body)
+        required_fields = ['nombre', 'direccion', 'ciudad', 'telefono', 'imagen_url']
+
+        if not all(field in data for field in required_fields):
+            return JsonResponse({'error': 'Faltan campos requeridos'}, status=400)
+
+        result = supabase.table("gimnasios").insert(data).execute()
+
+        return JsonResponse({'message': 'Gimnasio creado', 'data': result.data}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== EDITAR GYMNASIO =========================
+@csrf_exempt
+def api_update_gimnasio(request):
+    if request.method != 'PUT':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        data = json.loads(request.body)
+        gimnasio_id = data.get('id')
+
+        if not gimnasio_id:
+            return JsonResponse({'error': 'Falta el ID del gimnasio'}, status=400)
+
+        update_fields = {k: v for k, v in data.items() if k != 'id'}
+
+        result = supabase.table("gimnasios").update(update_fields).eq("id", gimnasio_id).execute()
+
+        return JsonResponse({'message': 'Gimnasio actualizado', 'data': result.data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== ELIMINAR GYMNASIO GYMNASIO ========================
+@csrf_exempt
+def api_delete_gimnasio(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        data = json.loads(request.body)
+        gimnasio_id = data.get('id')
+
+        if not gimnasio_id:
+            return JsonResponse({'error': 'Falta el ID del gimnasio'}, status=400)
+
+        result = supabase.table("gimnasios").delete().eq("id", gimnasio_id).execute()
+
+        return JsonResponse({'message': 'Gimnasio eliminado', 'data': result.data}, status=200)
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

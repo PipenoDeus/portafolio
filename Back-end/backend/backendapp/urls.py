@@ -1,7 +1,7 @@
 from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
-from .views import api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs,api_create_rutina,api_get_rutinas,api_update_user,api_delete_user,api_get_role,api_list_users,admin_update_user,api_verify_token,admin_delete_user
+from .views import api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs,api_create_rutina,api_get_rutinas,api_update_user,api_delete_user,api_get_role,api_list_users,admin_update_user,api_verify_token,admin_delete_user,api_create_gimnasio,api_list_gimnasios,api_update_gimnasio,api_delete_gimnasio
 
 router = DefaultRouter()
 
@@ -23,4 +23,8 @@ urlpatterns = [
     path('api/users/',api_list_users, name='api_list_users'),
     path('api/admin-update-user/', admin_update_user, name='admin_update_user'),
     path('api/admin-delete-user/', admin_delete_user, name='admin_delete_user'),
+    path('api/gimnasios/listar/', api_list_gimnasios, name='listar_gimnasios'),
+    path('api/gimnasios/crear/', api_create_gimnasio, name='crear_gimnasio'),
+    path('api/gimnasios/actualizar/', api_update_gimnasio, name='actualizar_gimnasio'),
+    path('api/gimnasios/eliminar/', api_delete_gimnasio, name='eliminar_gimnasio'),
 ]

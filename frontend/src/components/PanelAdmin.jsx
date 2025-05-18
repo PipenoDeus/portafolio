@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import supabase from '../connection/supabaseClient';
 
 const PanelAdmin = () => {
   const [users, setUsers] = useState([]);
@@ -7,6 +8,10 @@ const PanelAdmin = () => {
   const [loading, setLoading] = useState(true);
   const [editUser, setEditUser] = useState(null);
   const navigate = useNavigate();
+  const [gyms, setGyms] = useState([]);
+  const [newGym, setNewGym] = useState({ nombre: '', direccion: '', ciudad: '',telefono:'',imagen_url: '', });
+  const [editGym, setEditGym] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   useEffect(() => {
     const checkAdmin = async () => {
@@ -33,7 +38,8 @@ const PanelAdmin = () => {
 
         if (data.rol === 'admin') {
           setIsAdmin(true);
-          fetchUsers(token); // Obtener usuarios si es admin
+          fetchUsers(token); 
+          fetchGyms();
           console.log('Rol verificado:', data.rol);
         } else {
           navigate('/home');
@@ -62,7 +68,7 @@ const PanelAdmin = () => {
       if (response.ok) {
         const data = await response.json();
 
-        // Verificar que 'data' sea un array antes de usarlo
+        
         if (Array.isArray(data)) {
           setUsers(data);
         } else {
@@ -86,14 +92,14 @@ const PanelAdmin = () => {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json',  // Esto podría ser importante
+        'Content-Type': 'application/json',  
       },
-      body: JSON.stringify({ id: userId }),  // El ID va en el cuerpo de la solicitud
+      body: JSON.stringify({ id: userId }), 
     });
 
     if (response.ok) {
       alert('Usuario eliminado correctamente');
-      fetchUsers(); // refrescar lista
+      fetchUsers();
     } else {
       alert('Error al eliminar usuario');
     }
@@ -134,6 +140,165 @@ const PanelAdmin = () => {
       alert('Error al conectar con el servidor');
     }
   };
+
+  const fetchGyms = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch('http://localhost:8000/api/gimnasios/', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setGyms(data);
+      } else {
+        console.error('Error al obtener gimnasios');
+      }
+    } catch (error) {
+      console.error('Error de red:', error);
+    }
+  };
+
+  const handleCreateGym = async () => {
+  const token = localStorage.getItem('token');
+
+  console.log("Intentando crear gimnasio con:", newGym);
+
+  if (!newGym.imagen_url) {
+    alert("Debes subir una imagen antes de crear el gimnasio.");
+    return;
+  }
+
+  console.log("Enviando datos del gimnasio:", newGym);
+
+  try {
+    const response = await fetch('http://localhost:8000/api/gimnasios/crear/', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newGym),
+    });
+
+    const responseData = await response.json();
+
+    if (response.ok) {
+      alert("Gimnasio creado exitosamente.");
+      setNewGym({ nombre: '', direccion: '', ciudad: '', telefono: '', imagen_url: '' });
+      fetchGyms();
+      setShowCreateModal(false);
+    } else {
+      console.error('Error al crear gimnasio:', responseData);
+      alert('Error al crear gimnasio. Revisa la consola.');
+    }
+  } catch (error) {
+    console.error('Error de red:', error);
+    alert('Error de red. Revisa la consola.');
+  }
+};
+
+const handleGymImageUpload = async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const token = localStorage.getItem('token');
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${Date.now()}.${fileExt}`;
+  const filePath = fileName;
+
+  const { error: uploadError } = await supabase.storage
+    .from('gimnasios')
+    .upload(filePath, file, { upsert: true });
+
+  if (uploadError) {
+    console.error("Error al subir imagen:", uploadError);
+    alert('Error al subir la imagen');
+    return;
+  }
+
+  const { data: publicUrlData, error: publicUrlError } = await supabase
+    .storage
+    .from('gimnasios')
+    .getPublicUrl(filePath);
+
+  if (publicUrlError || !publicUrlData?.publicUrl) {
+    console.error("Error obteniendo URL pública:", publicUrlError);
+    alert('No se pudo obtener la URL pública');
+    return;
+  }
+
+  const imageUrl = publicUrlData.publicUrl;
+
+  console.log("Imagen subida, URL pública:", imageUrl);
+
+  setNewGym((prev) => {
+    const updated = { ...prev, imagen_url: imageUrl };
+    console.log("newGym actualizado:", updated);
+    return updated;
+  });
+};
+
+
+const handleUpdateGym = async () => {
+  const token = localStorage.getItem('token');
+  try {
+    const response = await fetch('http://localhost:8000/api/gimnasios/actualizar/', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: editGym.id,
+        nombre: editGym.nombre,
+        direccion: editGym.direccion,
+        ciudad: editGym.ciudad,
+        telefono: editGym.telefono,
+        imagen_url: editGym.imagen_url,
+      }),
+    });
+
+    if (response.ok) {
+      setEditGym(null);
+      fetchGyms();
+    } else {
+      const errorData = await response.json();
+      console.error('Error en la respuesta:', errorData);
+      alert('Error al actualizar gimnasio');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
+
+
+const handleDeleteGym = async (id) => {
+  const token = localStorage.getItem('token');
+  const confirmDelete = window.confirm('¿Eliminar este gimnasio?');
+  if (!confirmDelete) return;
+
+  try {
+    const response = await fetch(`http://localhost:8000/api/gimnasios/eliminar/`, {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id }),  // Aquí va el id en el cuerpo
+    });
+
+    if (response.ok) {
+      fetchGyms();
+    } else {
+      const errorData = await response.json();
+      console.error('Error al eliminar:', errorData);
+      alert(`Error al eliminar gimnasio: ${errorData.detail || 'Error desconocido'}`);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
+};
 
   if (loading) {
     return <div>Cargando...</div>;
@@ -234,14 +399,16 @@ const PanelAdmin = () => {
       {isAdmin ? (
         <div>
           <h2 style={{ textAlign: 'center' }}>Panel de Administración</h2>
+          <h2 style={{ textAlign: 'center' }}>Usuarios</h2>
           <div
-            style={{
+                      style={{
               maxHeight: '500px',
               overflowY: 'auto',
               border: '1px solid #ccc',
               borderRadius: '8px',
               boxShadow: '0 0 10px rgba(0,0,0,0.1)',
               marginTop: '20px',
+              padding: '10px',
             }}
           >
             <table
@@ -309,13 +476,229 @@ const PanelAdmin = () => {
               </tbody>
             </table>
           </div>
+          <h2 style={{ textAlign: 'center', marginTop: '40px' }}>Gimnasios</h2>
+          <div
+            style={{
+              maxHeight: '500px',
+              overflowY: 'auto',
+              border: '1px solid #ccc',
+              borderRadius: '8px',
+              padding: '20px',
+              boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+              marginBottom: '40px',
+            }}
+          >
+            <div
+              style={{
+                margin: '20px 0',
+                display: 'flex',
+                gap: '10px',
+                flexWrap: 'wrap',
+                justifyContent: 'center',
+              }}
+            >
+              <button onClick={() => setShowCreateModal(true)} style={btnStyle}>
+                Crear Gimnasio
+              </button>
+              {showCreateModal && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000,
+                  }}
+                >
+                  <div
+                    style={{
+                      background: 'white',
+                      padding: '20px',
+                      borderRadius: '10px',
+                      width: '400px',
+                      maxHeight: '90%',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    <h3>Crear Nuevo Gimnasio</h3>
+                      <input
+                        placeholder="Nombre"
+                        value={newGym.nombre}
+                        onChange={(e) => setNewGym({ ...newGym, nombre: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        placeholder="Dirección"
+                        value={newGym.direccion}
+                        onChange={(e) => setNewGym({ ...newGym, direccion: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        placeholder="Ciudad"
+                        value={newGym.ciudad}
+                        onChange={(e) => setNewGym({ ...newGym, ciudad: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        placeholder="Teléfono"
+                        value={newGym.telefono}
+                        onChange={(e) => setNewGym({ ...newGym, telefono: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleGymImageUpload}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <button
+                        onClick={handleCreateGym}
+                        style={{
+                          ...btnStyle,
+                          backgroundColor: newGym.imagen_url ? btnStyle.backgroundColor : '#ccc',
+                          cursor: newGym.imagen_url ? 'pointer' : 'not-allowed',
+                        }}
+                        disabled={!newGym.imagen_url}
+                      >
+                        Guardar
+                      </button>
+
+                      <button
+                        onClick={() => setShowCreateModal(false)}
+                        style={{ ...btnStyle, backgroundColor: '#ccc', marginLeft: '10px' }}
+                      >
+                        Cancelar
+                      </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+              <thead>
+                <tr>
+                  <th style={thStyle}>Imagen</th>
+                  <th style={thStyle}>Nombre</th>
+                  <th style={thStyle}>Dirección</th>
+                  <th style={thStyle}>Ciudad</th>
+                  <th style={thStyle}>Telefono</th>
+                  <th style={thStyle}>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {gyms.length === 0 ? (
+                  <tr>
+                    <td colSpan="4" style={tdStyle}>No hay gimnasios</td>
+                  </tr>
+                ) : (
+                  gyms.map((gym, index) => (
+                    <tr key={index}>
+                      <td style={tdStyle}>
+                        <img
+                          src={gym.imagen_url}
+                          alt="gym"
+                          style={{
+                            width: '60px',
+                            height: '60px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                          }}
+                        />
+                      </td>
+                      <td style={tdStyle}>{gym.nombre}</td>
+                      <td style={tdStyle}>{gym.direccion}</td>
+                      <td style={tdStyle}>{gym.ciudad}</td>
+                      <td style={tdStyle}>{gym.telefono}</td>
+                      
+                      <td style={tdStyle}>
+                        <button onClick={() => setEditGym(gym)} style={btnStyle}>Editar</button>
+                        {editGym && (
+                          <div
+                            style={{
+                              position: 'fixed',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '100%',
+                              backgroundColor: 'rgba(0,0,0,0.5)',
+                              display: 'flex',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              zIndex: 1000,
+                            }}
+                          >
+                            <div
+                              style={{
+                                background: 'white',
+                                padding: '20px',
+                                borderRadius: '10px',
+                                width: '400px',
+                                maxHeight: '90%',
+                                overflowY: 'auto',
+                              }}
+                            >
+                              <h3>Editar Gimnasio</h3>
+                              <input
+                                placeholder="Nombre"
+                                value={editGym.nombre || ''}
+                                onChange={(e) => setEditGym({ ...editGym, nombre: e.target.value })}
+                                style={{ width: '100%', marginBottom: '10px' }}
+                              />
+                              <input
+                                placeholder="Dirección"
+                                value={editGym.direccion || ''}
+                                onChange={(e) => setEditGym({ ...editGym, direccion: e.target.value })}
+                                style={{ width: '100%', marginBottom: '10px' }}
+                              />
+                              <input
+                                placeholder="Ciudad"
+                                value={editGym.ciudad || ''}
+                                onChange={(e) => setEditGym({ ...editGym, ciudad: e.target.value })}
+                                style={{ width: '100%', marginBottom: '10px' }}
+                              />
+                              <input
+                                placeholder="Teléfono"
+                                value={editGym.telefono || ''}
+                                onChange={(e) => setEditGym({ ...editGym, telefono: e.target.value })}
+                                style={{ width: '100%', marginBottom: '10px' }}
+                              />
+                              <button onClick={handleUpdateGym} style={btnStyle}>Guardar</button>
+                              <button
+                                onClick={() => setEditGym(null)}
+                                style={{ ...btnStyle, backgroundColor: '#ccc', marginLeft: '10px' }}
+                              >
+                                Cancelar
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        <button
+                          onClick={() => handleDeleteGym(gym.id)}
+                          style={{ ...btnStyle, backgroundColor: '#e74c3c', marginLeft: '10px' }}
+                        >
+                          Eliminar
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
+        
       ) : (
         <div>No tienes permisos para acceder a este panel.</div>
       )}
     </div>
   );
 };
+  
 
 const thStyle = {
   padding: '12px',
