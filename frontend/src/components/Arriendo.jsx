@@ -81,14 +81,12 @@ const Reservas = () => {
       return;
     }
 
-    // Ahora que tenemos el token del contexto, lo agregamos a las cabeceras
     const headers = {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
     console.log("Headers enviados:", headers);
 
-    // Realizamos la reserva llamando al backend (API)
     const response = await fetch('http://localhost:8000/api/reserva_ring', {
       method: 'POST',
       headers: headers,

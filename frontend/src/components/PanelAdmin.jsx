@@ -12,49 +12,56 @@ const PanelAdmin = () => {
   const [newGym, setNewGym] = useState({ nombre: '', direccion: '', ciudad: '',telefono:'',imagen_url: '', });
   const [editGym, setEditGym] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [rutinas, setRutinas] = useState([]);
+  const [rutinaEditando, setRutinaEditando] = useState(null);
+  
+  
 
   useEffect(() => {
-    const checkAdmin = async () => {
-      const token = localStorage.getItem('token');
+  const checkAdmin = async () => {
+    const token = localStorage.getItem('token');
 
-      if (!token) {
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:8000/api/verify_token/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
         navigate('/login');
         return;
       }
 
-      try {
-        const response = await fetch('http://localhost:8000/api/verify_token/', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
+      const data = await response.json();
 
-        if (!response.ok) {
-          navigate('/login');
-          return;
-        }
-
-        const data = await response.json();
-
-        if (data.rol === 'admin') {
-          setIsAdmin(true);
-          fetchUsers(token); 
-          fetchGyms();
-          console.log('Rol verificado:', data.rol);
-        } else {
-          navigate('/home');
-        }
-
-      } catch (error) {
-        console.error('Error de verificación:', error);
-        navigate('/login');
-      } finally {
-        setLoading(false);
+      if (data.rol === 'admin') {
+        setIsAdmin(true);
+        fetchUsers(token); 
+        fetchGyms();
+        fetchRutinas(token); 
+        console.log('Rol verificado:', data.rol);
+      } else {
+        navigate('/home');
       }
-    };
 
-    checkAdmin();
-  }, [navigate]);
+    } catch (error) {
+      console.error('Error de verificación:', error);
+      navigate('/login');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  checkAdmin();
+}, [navigate]);
+
+
 
   const fetchUsers = async (tokenParam = null) => {
     const token = tokenParam || localStorage.getItem('token');
@@ -285,7 +292,7 @@ const handleDeleteGym = async (id) => {
         Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ id }),  // Aquí va el id en el cuerpo
+      body: JSON.stringify({ id }), 
     });
 
     if (response.ok) {
@@ -297,6 +304,89 @@ const handleDeleteGym = async (id) => {
     }
   } catch (error) {
     console.error('Error:', error);
+  }
+};
+
+const fetchRutinas = async (token) => {
+  try {
+    const response = await fetch('http://localhost:8000/api/get_rutina', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    const result = await response.json();
+
+    if (response.ok && Array.isArray(result.data)) {
+      setRutinas(result.data); 
+    } else {
+      console.error('Respuesta no válida de get_rutina');
+    }
+  } catch (err) {
+    console.error('Error al obtener rutinas:', err);
+  }
+};
+
+
+const handleUpdateRutina = async () => {
+  const token = localStorage.getItem('token');
+
+  try {
+    const response = await fetch('http://localhost:8000/api/update_rutina', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(rutinaEditando),
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al actualizar la rutina');
+    }
+
+    const data = await response.json();
+    console.log("Rutina actualizada:", data);
+
+
+    setRutinas(prev =>
+      prev.map(rutina => (rutina.id === data.id ? data : rutina)) 
+    );
+
+    fetchRutinas(token); 
+
+    setRutinaEditando(null); 
+
+  } catch (error) {
+    console.error('Error en actualización:', error);
+  }
+};
+
+
+const handleDeleteRutina = async (id) => {
+  const token = localStorage.getItem('token');
+  
+
+  try {
+    const response = await fetch('http://localhost:8000/api/delete_rutina', {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Error al eliminar la rutina');
+    }
+
+    setRutinas(prev => prev.filter(r => r.id !== id));
+    console.log('Rutina eliminada');
+
+  } catch (error) {
+    console.error('Error en eliminación:', error);
   }
 };
 
@@ -614,7 +704,6 @@ const handleDeleteGym = async (id) => {
                       <td style={tdStyle}>{gym.direccion}</td>
                       <td style={tdStyle}>{gym.ciudad}</td>
                       <td style={tdStyle}>{gym.telefono}</td>
-                      
                       <td style={tdStyle}>
                         <button onClick={() => setEditGym(gym)} style={btnStyle}>Editar</button>
                         {editGym && (
@@ -687,10 +776,145 @@ const handleDeleteGym = async (id) => {
                     </tr>
                   ))
                 )}
+                
               </tbody>
             </table>
           </div>
+          <h2 style={{ textAlign: 'center' }}>Rutinas</h2>
+            <div
+              style={{
+                maxHeight: '500px',
+                overflowY: 'auto',
+                border: '1px solid #ccc',
+                borderRadius: '8px',
+                boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+                marginTop: '20px',
+                padding: '10px',
+              }}
+            >
+              <table
+                style={{
+                  width: '100%',
+                  borderCollapse: 'collapse',
+                  fontFamily: 'Arial, sans-serif',
+                }}
+              >
+                <thead style={{ backgroundColor: '#f4f4f4' }}>
+                  <tr>
+                    <th style={thStyle}>Nombre</th>
+                    <th style={thStyle}>Descripción</th>
+                    <th style={thStyle}>Nivel</th>
+                    <th style={thStyle}>Entrenador</th>
+                    <th style={thStyle}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.isArray(rutinas) && rutinas.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={tdStyle}>
+                        No hay rutinas disponibles.
+                      </td>
+                    </tr>
+                  ) : (
+                    rutinas.map((rutina, index) => (
+                      <tr key={index}>
+                        <td style={tdStyle}>{rutina.nombre}</td>
+                        <td style={tdStyle}>{rutina.descripcion}</td>
+                        <td style={tdStyle}>{rutina.nivel}</td>
+                        <td style={tdStyle}>{rutina.entrenador_id}</td>
+                        <td style={tdStyle}>
+                          <button style={btnStyle} onClick={() => setRutinaEditando(rutina)}>
+                            Editar
+                          </button>
+                            
+                          <button
+                            style={{ ...btnStyle, backgroundColor: '#e74c3c' }}
+                            onClick={() => handleDeleteRutina(rutina.id)}
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+          </div>       
+          {rutinaEditando && (
+            <div
+              style={{
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'rgba(0,0,0,0.5)',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                zIndex: 1000,
+              }}
+            >
+              <div
+                style={{
+                  background: 'white',
+                  padding: '20px',
+                  borderRadius: '10px',
+                  width: '400px',
+                  maxHeight: '90%',
+                  overflowY: 'auto',
+                }}
+              >
+                <h3>Editar Rutina</h3>
+                <input
+                  placeholder="Nombre"
+                  value={rutinaEditando.nombre}
+                  onChange={e =>
+                    setRutinaEditando({ ...rutinaEditando, nombre: e.target.value })
+                  }
+                  style={{ width: '100%', marginBottom: '10px' }}
+                />
+                <input
+                  placeholder="Descripción"
+                  value={rutinaEditando.descripcion}
+                  onChange={e =>
+                    setRutinaEditando({ ...rutinaEditando, descripcion: e.target.value })
+                  }
+                  style={{ width: '100%', marginBottom: '10px' }}
+                />
+                <input
+                  placeholder="Nivel"
+                  value={rutinaEditando.nivel}
+                  onChange={e =>
+                    setRutinaEditando({ ...rutinaEditando, nivel: e.target.value })
+                  }
+                  style={{ width: '100%', marginBottom: '10px' }}
+                />
+                <input
+                  placeholder="Entrenador ID"
+                  value={rutinaEditando.entrenador_id}
+                  onChange={e =>
+                    setRutinaEditando({
+                      ...rutinaEditando,
+                      entrenador_id: e.target.value,
+                    })
+                  }
+                  style={{ width: '100%', marginBottom: '10px' }}
+                />
+                <button onClick={handleUpdateRutina} style={btnStyle}>
+                  Guardar
+                </button>
+                <button
+                  onClick={() => setRutinaEditando(null)}
+                  style={{ ...btnStyle, backgroundColor: '#ccc', marginLeft: '10px' }}
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          )} 
         </div>
+        
         
       ) : (
         <div>No tienes permisos para acceder a este panel.</div>
@@ -722,5 +946,6 @@ const btnStyle = {
   borderRadius: '4px',
   cursor: 'pointer',
 };
+
 
 export default PanelAdmin;

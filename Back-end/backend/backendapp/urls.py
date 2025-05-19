@@ -1,7 +1,7 @@
 from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
-from .views import api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs,api_create_rutina,api_get_rutinas,api_update_user,api_delete_user,api_get_role,api_list_users,admin_update_user,api_verify_token,admin_delete_user,api_create_gimnasio,api_list_gimnasios,api_update_gimnasio,api_delete_gimnasio
+from .views import api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs,api_create_rutina,api_get_rutinas,api_update_user,api_delete_user,api_get_role,api_list_users,admin_update_user,api_verify_token,admin_delete_user,api_create_gimnasio,api_list_gimnasios,api_update_gimnasio,api_delete_gimnasio,api_update_rutina,api_delete_rutina,api_listar_reservas,api_modificar_reserva,api_eliminar_reserva
 
 router = DefaultRouter()
 
@@ -14,6 +14,9 @@ urlpatterns = [
     path('api/gimnasios/', obtener_gimnasios),
     path('api/clases/', obtener_clases),
     path('api/reserva_ring',api_reservar_ring),
+    path('api/reservas/listar/', api_listar_reservas, name='listar_reservas'),
+    path('api/reservas/modificar/', api_modificar_reserva, name='modificar_reserva'),
+    path('api/reservas/eliminar/', api_eliminar_reserva, name='eliminar_reserva'),
     path('api/create-blog/', api_create_blog, name='create_blog'),
     path('api/blogs/', api_get_blogs, name='api_get_blogs'),
     path('api/create_rutina', api_create_rutina, name='api_create_rutina'),
@@ -27,4 +30,7 @@ urlpatterns = [
     path('api/gimnasios/crear/', api_create_gimnasio, name='crear_gimnasio'),
     path('api/gimnasios/actualizar/', api_update_gimnasio, name='actualizar_gimnasio'),
     path('api/gimnasios/eliminar/', api_delete_gimnasio, name='eliminar_gimnasio'),
+    path('api/update_rutina', api_update_rutina, name='api_update_rutina'),
+    path('api/delete_rutina', api_delete_rutina, name='api_delete_rutina'),
+    
 ]

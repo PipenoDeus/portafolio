@@ -10,23 +10,50 @@ const Rutinas = () => {
     nivel: ''
   });
 
+  const token = localStorage.getItem('token');
   const { user, role } = useAuth();
 
-  const fetchRutinas = () => {
-    fetch('http://localhost:8000/api/get_rutina')
-      .then(response => {
-        if (!response.ok) throw new Error('Error al cargar las rutinas');
-        return response.json();
-      })
-      .then(data => setRutinas(data.rutinas || []))
-      .catch(err => setError(err.message));
+  console.log('🔐 Usuario:', user);
+  console.log('🔑 Token:', token);
+  console.log('🎭 Rol:', role);
+
+  const fetchRutinas = async () => {
+    try {
+      console.log('📡 Solicitando rutinas...');
+
+      const response = await fetch('http://localhost:8000/api/get_rutina', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
+      console.log('Respuesta de la API:', result);
+
+      if (response.ok) {
+        if (Array.isArray(result.data)) {
+          console.log('Rutinas recibidas correctamente:', result.data);
+          setRutinas(result.data);
+        } else {
+          console.error('La propiedad "data" no es un array:', result.data);
+        }
+      } else {
+        console.error('Error al obtener rutinas (response.ok = false):', result.error);
+      }
+    } catch (error) {
+      console.error('Error al obtener rutinas (try-catch):', error);
+      setError('Error al cargar las rutinas');
+    }
   };
 
   useEffect(() => {
     if (!user) {
+      console.warn('⚠️ Usuario no autenticado');
       setError('Usuario no autenticado');
+    } else {
+      fetchRutinas();
     }
-    fetchRutinas();
   }, [user]);
 
   const handleChange = e => {
@@ -37,7 +64,10 @@ const Rutinas = () => {
   const handleSubmit = e => {
     e.preventDefault();
 
+    console.log('📤 Enviando nueva rutina:', formData);
+
     if (!user?.id) {
+      console.warn('❌ Usuario no válido para crear rutinas');
       setError('Usuario no válido para crear rutinas');
       return;
     }
@@ -47,21 +77,30 @@ const Rutinas = () => {
       entrenador_id: user.id
     };
 
-    fetch('http://localhost:8000/api/create_rutina/', {
+    console.log('📦 Datos con entrenador:', dataConEntrenador);
+
+    fetch('http://localhost:8000/api/create_rutina', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
       body: JSON.stringify(dataConEntrenador)
     })
       .then(response => {
+        console.log('📥 Respuesta de /create_rutina:', response.status);
         if (!response.ok) throw new Error('Error al crear rutina');
         return response.json();
       })
       .then(() => {
         alert('Rutina creada exitosamente');
         setFormData({ nombre: '', descripcion: '', nivel: '' });
-        fetchRutinas();
+        fetchRutinas(); 
       })
-      .catch(err => setError(err.message));
+      .catch(err => {
+        console.error('❌ Error al crear rutina:', err);
+        setError(err.message);
+      });
   };
 
   const puedeCrearRutinas = role === 'admin' || role === 'entrenador';
@@ -96,7 +135,7 @@ const Rutinas = () => {
           }}>Crear Rutina</button>
         </form>
       ) : (
-        <p style={{ color: 'gray', textAlign: 'center' }}></p>
+        <p style={{ color: 'gray', textAlign: 'center' }}>No tienes permisos para crear rutinas.</p>
       )}
 
       {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}

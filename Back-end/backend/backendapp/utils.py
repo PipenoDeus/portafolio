@@ -14,7 +14,7 @@ def jwt_required(view_func):
         token = auth_header.split(' ')[1]
         try:
             decoded = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
-            request.user_data = decoded  # Puedes acceder a esto en tu vista
+            request.user_data = decoded
         except jwt.ExpiredSignatureError:
             return JsonResponse({'error': 'Token expirado'}, status=401)
         except jwt.InvalidTokenError:

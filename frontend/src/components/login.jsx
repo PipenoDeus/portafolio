@@ -55,9 +55,8 @@ const Login = () => {
       console.log('💾 Email guardado en localStorage:', localStorage.getItem('email'));
       console.log('💾 Rol guardado en localStorage:', localStorage.getItem('role'));
 
-      login(user, token);  // <-- Aquí se pasa el user y token al contexto
+      login(user, token); 
 
-      // Redirección según rol
       if (user.rol === 'admin') {
         console.log('🔀 Redirigiendo a /PanelAdmin');
         navigate('/PanelAdmin');

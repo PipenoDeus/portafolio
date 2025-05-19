@@ -21,7 +21,7 @@ const Profile = () => {
     rol: ''
   });
 
-  const [showDeleteWarning, setShowDeleteWarning] = useState(false); // Estado para la advertencia
+  const [showDeleteWarning, setShowDeleteWarning] = useState(false); 
 
   useEffect(() => {
     if (!user) {
@@ -148,7 +148,6 @@ const Profile = () => {
 
     console.log('Perfil actualizado:', updatedProfile);
 
-    // Actualizar el estado del usuario en el contexto (actualiza el email en el frontend)
     updateUser({ ...user, ...updatedProfile });
 
     setIsEditing(false);
@@ -157,7 +156,6 @@ const Profile = () => {
 
   const handleDeleteAccount = async () => {
     try {
-      // Mostrar la advertencia de confirmación
       setShowDeleteWarning(true);
     } catch (err) {
       console.error('❌ Error en la solicitud de eliminación de cuenta:', err);
@@ -185,8 +183,8 @@ const Profile = () => {
 
     if (response.ok) {
       console.log('✅ Cuenta eliminada correctamente');
-      logout(); // << reinicia estado del contexto
-      window.location.replace('/'); // << fuerza recarga total
+      logout(); 
+      window.location.replace('/'); 
     } else {
       const error = await response.json();
       console.error('⚠️ Error al eliminar cuenta:', error);

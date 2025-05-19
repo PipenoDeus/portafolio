@@ -1,26 +1,23 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext';  // Asegúrate de importar el contexto de autenticación
+import { useAuth } from '../context/AuthContext';  
 
 const PrivateLayout = () => {
-  const [isAuthorized, setIsAuthorized] = useState(null);  // null = validando
+  const [isAuthorized, setIsAuthorized] = useState(null);  
   const location = useLocation();
-  const { user, role, isAuthenticated } = useAuth();  // Usamos el contexto aquí
+  const { user, role, isAuthenticated } = useAuth();  
 
   useEffect(() => {
-    // 1) Si no hay usuario o token en el contexto
     if (!isAuthenticated) {
       setIsAuthorized(false);
       return;
     }
 
-    // 2) Si la ruta no es /PanelAdmin, permite el acceso directamente
     if (location.pathname !== '/PanelAdmin') {
       setIsAuthorized(true);
       return;
     }
 
-    // 3) Si es /PanelAdmin, consulta el rol al backend
     if (role === 'admin') {
       setIsAuthorized(true);
     } else {
@@ -28,17 +25,14 @@ const PrivateLayout = () => {
     }
   }, [location.pathname, user, role, isAuthenticated]);
 
-  // Mientras validamos
   if (isAuthorized === null) {
     return <div>Cargando…</div>;
   }
 
-  // Si no está autorizado, o no hay usuario…
   if (!isAuthorized) {
     return <Navigate to="/login" replace />;
   }
 
-  // Autorizado
   return <Outlet />;
 };
 

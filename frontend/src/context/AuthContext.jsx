@@ -53,7 +53,7 @@ export const AuthProvider = ({ children }) => {
   const updateUser = (newUserData) => {
     const updatedUser = { ...user, ...newUserData };
     setUser(updatedUser);
-    setRole(updatedUser.rol); // Actualizar el rol también
+    setRole(updatedUser.rol); 
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
 

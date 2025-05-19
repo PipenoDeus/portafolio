@@ -75,7 +75,6 @@ const Blogs = () => {
     <div className="container mt-4">
       <h2>Blog de la Comunidad</h2>
       
-      {/* Formulario para crear blog */}
       <div className="mb-4">
         <h3>Crear Nuevo Blog</h3>
         <input
@@ -96,7 +95,6 @@ const Blogs = () => {
         </button>
       </div>
 
-      {/* Mostrar los blogs existentes */}
       {blogs.length === 0 ? (
         <p>No hay publicaciones aún.</p>
       ) : (

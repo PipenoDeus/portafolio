@@ -23,9 +23,6 @@ import jwt
 
 
 
-
-
-
 class JWTAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request):
         auth_header = request.headers.get('Authorization')
@@ -93,7 +90,6 @@ def api_register(request):
         birthdate = body.get('birthdate')
         membresy = body.get('membresy', False)
 
-        # Imagen por defecto
         DEFAULT_AVATAR_URL = "https://xtckolxiipfxnstcbofm.supabase.co/storage/v1/object/public/avatars//Leonardo_Phoenix_10_a_stylized_highcontrast_black_and_white_il_2.jpg"
         avatar_url = body.get('avatar_url') or DEFAULT_AVATAR_URL
 
@@ -130,57 +126,50 @@ def api_update_user(request):
     if request.method != 'PUT':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    # Obtener el token JWT desde el encabezado de la solicitud
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         return JsonResponse({'error': 'Token de autenticación no proporcionado'}, status=401)
     
-    # El token debe estar en el formato "Bearer <token>"
+
     token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
     if not token:
         return JsonResponse({'error': 'Token de autenticación no proporcionado'}, status=401)
 
     try:
-        # Decodifica el token JWT para obtener el user_id y otros datos
+
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
 
-        # Obtener el ID del usuario desde el payload del token
         user_id_from_token = payload.get('user_id')
 
-        # Obtener los datos de la solicitud para la actualización
         body = json.loads(request.body)
         email = body.get('email')
 
         if email and email != payload.get('email'):
-            # Verifica si el nuevo correo electrónico ya está registrado
             exists = supabase.table("user_profiles").select("id").eq("email", email).execute()
             if exists.data:
                 return JsonResponse({'error': 'El correo electrónico ya está registrado'}, status=409)
 
-        # Si no se ha proporcionado un nuevo correo, mantenemos el actual
         if not email:
             email = payload.get('email')
 
-        # Campos que se pueden actualizar
         fields = ['first_name', 'last_name', 'city', 'birthdate', 'avatar_url', 'membresy', 'password']
         update_data = {field: body[field] for field in fields if field in body}
 
-        # Si se actualizó el correo, lo agregamos a los datos a actualizar
         if email != payload.get('email'):
             update_data['email'] = email
 
         if not update_data:
             return JsonResponse({'error': 'No se proporcionaron datos para actualizar'}, status=400)
 
-        # Actualiza los datos del usuario en la base de datos
+
         result = supabase.table("user_profiles").update(update_data).eq("id", user_id_from_token).execute()
 
         if result.data:
-            # Si el correo electrónico fue actualizado, actualizamos también el payload del token
+
             if 'email' in update_data:
                 payload['email'] = email
 
-            # Devolver la respuesta con los datos actualizados
+
             return JsonResponse({'message': 'Usuario actualizado exitosamente', 'user': result.data}, status=200)
 
         return JsonResponse({'error': 'No se encontró el usuario para actualizar'}, status=404)
@@ -199,7 +188,7 @@ def api_delete_user(request):
     if request.method != 'DELETE':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    # Obtener el token JWT desde el encabezado de la solicitud
+
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         return JsonResponse({'error': 'Token de autenticación no proporcionado'}, status=401)
@@ -209,18 +198,17 @@ def api_delete_user(request):
         return JsonResponse({'error': 'Token de autenticación no proporcionado'}, status=401)
 
     try:
-        # Decodificar el token
+
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
 
-        # Obtener el email o el ID del usuario desde el token
         user_email = payload.get('email')
         user_id = payload.get('user_id')
 
-        # Validar existencia de datos esenciales
+
         if not user_email and not user_id:
             return JsonResponse({'error': 'Token inválido: falta user_id o email'}, status=400)
 
-        # Ejecutar la eliminación en base al ID (más robusto)
+
         result = supabase.table("user_profiles").delete().eq("id", user_id).execute()
 
         if result.data:
@@ -289,7 +277,6 @@ def api_reservar_ring(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    # Obtener el token JWT desde el encabezado de la solicitud
     auth_header = request.headers.get('Authorization')
     if not auth_header:
         return JsonResponse({'error': 'Token de autenticación no proporcionado'}, status=401)
@@ -299,9 +286,9 @@ def api_reservar_ring(request):
         return JsonResponse({'error': 'Token de autenticación no proporcionado'}, status=401)
 
     try:
-        # Decodificar el token JWT para verificar al usuario
+
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
-        user_id_from_token = payload.get('user_id')
+        user_id_from_token = payload.get('user_id')  
 
         body = json.loads(request.body)
         boxer_id = body.get('boxer_id')
@@ -311,10 +298,6 @@ def api_reservar_ring(request):
         hora_fin = body.get('hora_fin')
         oponente_email = body.get('oponente_email')
         descripcion = body.get('descripcion')
-
-        # Verificar que el boxer_id del token coincida con el boxer_id de la solicitud
-        if boxer_id != user_id_from_token:
-            return JsonResponse({'error': 'No tienes permisos para reservar este ring'}, status=403)
 
         if not all([boxer_id, ring_id, fecha, hora_inicio, hora_fin]):
             return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
@@ -332,7 +315,7 @@ def api_reservar_ring(request):
 
         if conflictos.data:
             return JsonResponse({'error': 'El ring ya está reservado en ese horario'}, status=409)
-
+        
         result = supabase.table("reservas").insert({
             "boxer_id": boxer_id,
             "ring_id": ring_id,
@@ -355,6 +338,124 @@ def api_reservar_ring(request):
         return JsonResponse({'error': 'Token inválido'}, status=401)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+# ======================== MOSTRAR RESERVAS ========================
+
+@csrf_exempt
+def api_listar_reservas(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        rol = payload.get('rol')
+
+        if rol == 'admin':
+            result = supabase.table("reservas").select("*").execute()
+        else:
+            result = supabase.table("reservas").select("*").eq("boxer_id", user_id).execute()
+
+        return JsonResponse(result.data, safe=False, status=200)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+# ======================== MODIFICAR RESERVAS ========================
+@csrf_exempt
+def api_modificar_reserva(request):
+    if request.method != 'PUT':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        rol = payload.get('rol')
+
+        body = json.loads(request.body)
+        reserva_id = body.get('id')
+        if not reserva_id:
+            return JsonResponse({'error': 'Falta el campo id'}, status=400)
+
+
+        reserva = supabase.table("reservas").select("boxer_id").eq("id", reserva_id).single().execute()
+        if not reserva.data:
+            return JsonResponse({'error': 'Reserva no encontrada'}, status=404)
+
+        if rol != 'admin' and reserva.data['boxer_id'] != user_id:
+            return JsonResponse({'error': 'No tienes permiso para modificar esta reserva'}, status=403)
+
+
+        campos_editables = ['fecha', 'hora_inicio', 'hora_fin', 'oponente_email', 'descripcion', 'estado']
+        update_data = {campo: body[campo] for campo in campos_editables if campo in body}
+
+        if not update_data:
+            return JsonResponse({'error': 'No se proporcionaron campos válidos para actualizar'}, status=400)
+
+        result = supabase.table("reservas").update(update_data).eq("id", reserva_id).execute()
+        return JsonResponse({'message': 'Reserva actualizada exitosamente'}, status=200)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== ELIMINAR RESERVA ========================
+@csrf_exempt
+def api_eliminar_reserva(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+        rol = payload.get('rol')
+
+        body = json.loads(request.body)
+        reserva_id = body.get('id')
+        if not reserva_id:
+            return JsonResponse({'error': 'Falta el campo id'}, status=400)
+
+        reserva = supabase.table("reservas").select("boxer_id").eq("id", reserva_id).single().execute()
+        if not reserva.data:
+            return JsonResponse({'error': 'Reserva no encontrada'}, status=404)
+
+        if rol != 'admin' and reserva.data['boxer_id'] != user_id:
+            return JsonResponse({'error': 'No tienes permiso para eliminar esta reserva'}, status=403)
+
+        result = supabase.table("reservas").delete().eq("id", reserva_id).execute()
+        return JsonResponse({'message': 'Reserva eliminada exitosamente'}, status=200)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 # ======================== CREACION DE BLOG ========================
 @csrf_exempt
@@ -407,7 +508,14 @@ def api_create_rutina(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
     try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
         body = json.loads(request.body)
         nombre = body.get('nombre')
         descripcion = body.get('descripcion')
@@ -417,7 +525,6 @@ def api_create_rutina(request):
         if not all([nombre, descripcion, nivel, entrenador_id]):
             return JsonResponse({'error': 'Faltan campos'}, status=400)
 
-        # Verificar que el entrenador_id sea un usuario con rol válido
         user_check = supabase.table("user_profiles").select("rol").eq("id", entrenador_id).single().execute()
         if user_check.data is None:
             return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
@@ -426,7 +533,6 @@ def api_create_rutina(request):
         if rol not in ['entrenador', 'admin']:
             return JsonResponse({'error': f'Permiso denegado: rol inválido ({rol})'}, status=403)
 
-        # Insertar la rutina
         result = supabase.table("rutinas").insert([{
             "nombre": nombre,
             "descripcion": descripcion,
@@ -436,24 +542,107 @@ def api_create_rutina(request):
 
         return JsonResponse({'message': 'Rutina creada', 'data': result.data}, status=201)
 
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
     
 
- # ======================== DATOS RUTINA ========================   
+ # ======================== MOSTRAR RUTINAS ========================   
 @csrf_exempt
 def api_get_rutinas(request):
     if request.method != 'GET':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    try:
-        result = supabase.table("rutinas").select("*").execute()
-        rutinas = result.data
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
 
-        return JsonResponse({'rutinas': rutinas}, status=200)
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        result = supabase.table("rutinas").select("*").execute()
+
+        return JsonResponse({'message': 'Rutinas obtenidas', 'data': result.data}, status=200)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+# ======================== MODIFICAR RUTINA ========================    
+@csrf_exempt
+def api_update_rutina(request):
+    if request.method != 'PUT':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        rol = payload.get('rol')
+        if rol not in ['admin', 'entrenador']:
+            return JsonResponse({'error': 'No autorizado. Solo administradores o entrenadores pueden editar rutinas.'}, status=403)
+
+        data = json.loads(request.body)
+        rutina_id = data.get('id')
+
+        if not rutina_id:
+            return JsonResponse({'error': 'Falta el ID de la rutina'}, status=400)
+
+        update_fields = {k: v for k, v in data.items() if k != 'id'}
+
+        result = supabase.table("rutinas").update(update_fields).eq("id", rutina_id).execute()
+
+        return JsonResponse({'message': 'Rutina actualizada', 'data': result.data}, status=200)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== DELETE RUTINA =========================
+@csrf_exempt
+def api_delete_rutina(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        # Validar rol
+        rol = payload.get('rol')
+        if rol not in ['admin', 'entrenador']:
+            return JsonResponse({'error': 'No autorizado. Solo administradores o entrenadores pueden eliminar rutinas.'}, status=403)
+
+        data = json.loads(request.body)
+        rutina_id = data.get('id')
+
+        if not rutina_id:
+            return JsonResponse({'error': 'Falta el ID de la rutina'}, status=400)
+
+        result = supabase.table("rutinas").delete().eq("id", rutina_id).execute()
+
+        return JsonResponse({'message': 'Rutina eliminada', 'data': result.data}, status=200)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
     
 # ======================== PANEL ADMIN ======================== 
 # ======================== VERIFY TOKEN ========================
@@ -462,7 +651,6 @@ def api_verify_token(request):
     if request.method != 'GET':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    # Obtener token del encabezado
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return JsonResponse({'error': 'Token no proporcionado'}, status=401)
@@ -470,10 +658,8 @@ def api_verify_token(request):
     token = auth_header.split(' ')[1]
 
     try:
-        # Decodificar el token
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
 
-        # Retornar información básica contenida en el token
         return JsonResponse({
             'message': 'Token válido',
             'user_id': payload.get('user_id'),
@@ -494,7 +680,6 @@ def api_list_users(request):
     if request.method != 'GET':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    # Obtener y verificar el token del encabezado
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return JsonResponse({'error': 'Token no proporcionado'}, status=401)
@@ -502,17 +687,14 @@ def api_list_users(request):
     token = auth_header.split(' ')[1]
 
     try:
-        # Decodificar token JWT
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
         user_role = payload.get('rol')
 
         if user_role != 'admin':
             return JsonResponse({'error': 'Acceso denegado: solo administradores'}, status=403)
 
-        # Si el rol es admin, obtener usuarios
         result = supabase.table("user_profiles").select("*").execute()
 
-        # Verificar si result.data es una lista y devolverla
         if isinstance(result.data, list):
             return JsonResponse(result.data, safe=False, status=200)
         else:
@@ -532,7 +714,6 @@ def admin_update_user(request):
     if request.method != 'PUT':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    # Verificar el token en el encabezado
     auth_header = request.headers.get('Authorization')
     if not auth_header or not auth_header.startswith('Bearer '):
         return JsonResponse({'error': 'Token no proporcionado'}, status=401)
@@ -540,7 +721,6 @@ def admin_update_user(request):
     token = auth_header.split(' ')[1]
 
     try:
-        # Decodificar el token JWT
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
         user_role = payload.get('rol')
 
@@ -553,21 +733,20 @@ def admin_update_user(request):
         if not user_id:
             return JsonResponse({'error': 'Falta el campo id'}, status=400)
 
-        # Verificar si se quiere actualizar el email
         new_email = body.get('email')
         if new_email:
             exists = supabase.table("user_profiles").select("id").eq("email", new_email).neq("id", user_id).execute()
             if exists.data:
                 return JsonResponse({'error': 'El correo electrónico ya está registrado'}, status=409)
 
-        # Campos permitidos para actualización
+
         fields = ['first_name', 'last_name', 'city', 'birthdate', 'avatar_url', 'membresy', 'rol', 'email']
         update_data = {field: body[field] for field in fields if field in body}
 
         if not update_data:
             return JsonResponse({'error': 'No se proporcionaron datos para actualizar'}, status=400)
 
-        # Ejecutar la actualización por ID
+
         result = supabase.table("user_profiles").update(update_data).eq("id", user_id).execute()
 
         if result.data:
@@ -705,7 +884,7 @@ def api_update_gimnasio(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-# ======================== ELIMINAR GYMNASIO GYMNASIO ========================
+# ======================== ELIMINAR GYMNASIO ========================
 @csrf_exempt
 def api_delete_gimnasio(request):
     if request.method != 'DELETE':
@@ -731,3 +910,4 @@ def api_delete_gimnasio(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
