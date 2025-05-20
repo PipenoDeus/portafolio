@@ -13,7 +13,7 @@ const PrivateLayout = () => {
       return;
     }
 
-    if (location.pathname !== '/PanelAdmin') {
+    if (location.pathname !== '/') {
       setIsAuthorized(true);
       return;
     }
@@ -30,7 +30,7 @@ const PrivateLayout = () => {
   }
 
   if (!isAuthorized) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/" replace />;
   }
 
   return <Outlet />;

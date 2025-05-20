@@ -20,7 +20,7 @@ const Login = () => {
   e.preventDefault();
   setError('');
 
-  console.log('📤 Enviando datos al backend:', formData);  // <-- input del formulario
+  console.log('📤 Enviando datos al backend:', formData);  
 
   try {
     const response = await fetch('http://localhost:8000/api/login/', {
@@ -32,10 +32,10 @@ const Login = () => {
       credentials: 'include',
     });
 
-    console.log('📥 Estado de respuesta HTTP:', response.status); // <-- código HTTP
+    console.log('📥 Estado de respuesta HTTP:', response.status); 
 
     const result = await response.json();
-    console.log('📥 Respuesta del backend:', result); // <-- JSON completo recibido
+    console.log('📥 Respuesta del backend:', result); 
 
     if (!response.ok) {
       console.warn('⚠️ Error devuelto por el backend:', result.error);
@@ -58,11 +58,11 @@ const Login = () => {
       login(user, token); 
 
       if (user.rol === 'admin') {
-        console.log('🔀 Redirigiendo a /PanelAdmin');
-        navigate('/PanelAdmin');
+        console.log('🔀 Redirigiendo a /');
+        navigate('/');
       } else {
-        console.log('🔀 Redirigiendo a /perfil');
-        navigate('/perfil');
+        console.log('🔀 Redirigiendo a /');
+        navigate('/');
       }
     } else {
       console.warn('⚠️ Usuario inválido o incompleto:', user);

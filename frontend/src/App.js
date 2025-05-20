@@ -4,6 +4,7 @@ import { Routes, Route } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './index.css';
 
+import PublicRoute from './context/AuthContext.jsx';
 import NavbarComponent from './components/NavbarComponent'; 
 import Footer from './components/Footer.jsx';
 import Register from './components/Register.jsx';
@@ -29,13 +30,29 @@ function App() {
         <Routes>
           {/* Rutas públicas */}
           <Route path="/" element={<Home />} />
-          <Route path="/registro" element={<Register />} />
-          <Route path="/login" element={<Login />} />
           <Route path="/acerca" element={<AcercaDe />} />
           <Route path="/contacto" element={<Contacto />} />
           <Route path="*" element={<NotFound />} />
 
-          {/* Rutas privadas */}
+          {/* Rutas públicas protegidas */}
+          <Route
+            path="/registro"
+            element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            }
+          />
+          <Route
+            path="/login"
+            element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            }
+          />
+
+          {/* Rutas privadas*/}
           <Route element={<PrivateLayout />}>
             <Route path="/perfil" element={<Profile />} />
             <Route path="/arriendo" element={<Arriendo />} />

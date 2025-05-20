@@ -4,8 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import supabase from '../connection/supabaseClient';
 
 const Profile = () => {
-  const { user, updateUser } = useAuth();
-  const { logout } = useAuth();
+  const { user, updateUser, logout } = useAuth();
   const navigate = useNavigate();
   const [avatarUrl, setAvatarUrl] = useState('');
   const [isEditing, setIsEditing] = useState(false);
@@ -17,9 +16,49 @@ const Profile = () => {
     city: '',
     birthdate: '',
     created_at: '',
-    membership: false,
+    membresy: false,
     rol: ''
   });
+
+  const handleSubscribe = async () => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      alert('Debes iniciar sesión para suscribirte');
+      return;
+    }
+
+    const response = await fetch('http://localhost:8000/api/crear-pago/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}` 
+      },
+      body: JSON.stringify({
+        email: user.email  
+      })
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      console.error('Error en la solicitud:', error);
+      alert('Hubo un problema al crear el pago');
+      return;
+    }
+
+    const data = await response.json();
+    console.log('Respuesta de la API de pago:', data);
+
+    if (data.redirect_url) {
+      window.location.href = data.redirect_url;
+    } else {
+      alert('No se pudo obtener la URL de pago');
+    }
+  } catch (err) {
+    console.error('❌ Error al procesar la suscripción:', err);
+    alert('Error en el proceso de suscripción');
+  }
+};
 
   const [showDeleteWarning, setShowDeleteWarning] = useState(false); 
 
@@ -37,7 +76,7 @@ const Profile = () => {
         birthdate: user.birthdate || '',
         email: user.email || '',
         created_at: user.created_at || '',
-        membership: user.membership || false,
+        membresy: user.membresy || false,
         rol: user.rol || ''
       });
     }
@@ -114,53 +153,50 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-    console.log('Guardando cambios para el perfil:', formData);
+  console.log('Guardando cambios para el perfil:', formData);
 
-    const { error: updateError, status } = await supabase
-      .from('user_profiles')
-      .update({
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        city: formData.city,
-        birthdate: formData.birthdate,
-        email: formData.email // Actualización del email
-      })
-      .eq('email', user.email);
 
-    if (updateError || status !== 204) {
-      console.error("Error al actualizar perfil:", updateError);
-      alert('Error al actualizar el perfil');
-      return;
-    }
+  const { error: updateError, status } = await supabase
+    .from('user_profiles')
+    .update({
+      first_name: formData.first_name,
+      last_name: formData.last_name,
+      city: formData.city,
+      birthdate: formData.birthdate,
+      email: formData.email
+    })
+    .eq('id', user.id); 
 
-    // Aquí se obtiene el perfil actualizado con el nuevo email
-    const { data: updatedProfile, error: fetchError } = await supabase
-      .from('user_profiles')
-      .select('*')
-      .eq('email', formData.email) // Cambiar para usar el nuevo email
-      .single();
+  if (updateError || status !== 204) {
+    console.error("Error al actualizar perfil:", updateError);
+    alert('Error al actualizar el perfil');
+    return;
+  }
 
-    if (fetchError || !updatedProfile) {
-      console.error("Error al obtener perfil actualizado:", fetchError);
-      alert('Error al obtener datos actualizados');
-      return;
-    }
 
-    console.log('Perfil actualizado:', updatedProfile);
+  const { data: updatedProfile, error: fetchError } = await supabase
+    .from('user_profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
 
-    updateUser({ ...user, ...updatedProfile });
+  if (fetchError || !updatedProfile) {
+    console.error("Error al obtener perfil actualizado:", fetchError);
+    alert('Error al obtener datos actualizados');
+    return;
+  }
 
-    setIsEditing(false);
-    alert('Perfil actualizado con éxito');
-  };
+  console.log('Perfil actualizado:', updatedProfile);
 
-  const handleDeleteAccount = async () => {
-    try {
-      setShowDeleteWarning(true);
-    } catch (err) {
-      console.error('❌ Error en la solicitud de eliminación de cuenta:', err);
-    }
-  };
+  updateUser({ ...user, ...updatedProfile });
+
+  setIsEditing(false);
+  alert('Perfil actualizado con éxito');
+};
+
+  const handleDeleteAccount = () => {
+  setShowDeleteWarning(true); 
+};
 
   const confirmDeleteAccount = async () => {
   try {
@@ -178,20 +214,22 @@ const Profile = () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ email: user.email }),
+      body: JSON.stringify({ email: user.email }),  
     });
 
     if (response.ok) {
       console.log('✅ Cuenta eliminada correctamente');
-      logout(); 
-      window.location.replace('/'); 
+      logout();  
+      window.location.replace('/');
     } else {
       const error = await response.json();
       console.error('⚠️ Error al eliminar cuenta:', error);
+      alert('Error al eliminar la cuenta, intenta nuevamente.');
     }
 
   } catch (err) {
     console.error('❌ Error en la solicitud de eliminación de cuenta:', err);
+    alert('Hubo un problema al intentar eliminar la cuenta.');
   }
 };
 
@@ -235,8 +273,11 @@ const Profile = () => {
               <p><strong>Ciudad:</strong> {user.city}</p>
               <p><strong>Fecha de nacimiento:</strong> {user.birthdate}</p>
               <p><strong>Fecha de creación:</strong> {new Date(user.created_at).toISOString().split('T')[0]}</p>
-              <p><strong>Membresía:</strong> {user.membership ? 'Premium' : 'Gratis'}</p>
+              <p><strong>Membresía:</strong> {user.membresy ? 'Premium' : 'Gratis'}</p>
               <p><strong>Rol:</strong> {user.rol}</p>
+              <button className="btn btn-warning mt-3" onClick={handleSubscribe}>
+                Suscribirse a Premium
+              </button>
               <button className="btn btn-secondary mt-3" onClick={handleEditToggle}>
                 Editar perfil
               </button>
@@ -294,7 +335,7 @@ const Profile = () => {
               </div>
 
               <input type="hidden" name="created_at" value={formData.created_at} />
-              <input type="hidden" name="membership" value={formData.membership} />
+              <input type="hidden" name="membresy" value={formData.membresy} />
               <input type="hidden" name="rol" value={formData.rol} />
 
               <button className="btn btn-success mt-3" onClick={handleSave}>
@@ -305,7 +346,6 @@ const Profile = () => {
               </button>
             </>
           )}
-
           {showDeleteWarning && (
             <div className="alert alert-danger mt-3">
               <strong>¡Advertencia!</strong> ¿Estás seguro de que deseas eliminar tu cuenta de forma permanente?
@@ -317,6 +357,7 @@ const Profile = () => {
               </button>
             </div>
           )}
+          
         </div>
       ) : (
         <p>Cargando perfil...</p>

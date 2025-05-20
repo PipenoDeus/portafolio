@@ -1,7 +1,7 @@
 from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
-from .views import api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs,api_create_rutina,api_get_rutinas,api_update_user,api_delete_user,api_get_role,api_list_users,admin_update_user,api_verify_token,admin_delete_user,api_create_gimnasio,api_list_gimnasios,api_update_gimnasio,api_delete_gimnasio,api_update_rutina,api_delete_rutina,api_listar_reservas,api_modificar_reserva,api_eliminar_reserva
+from .views import api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs,api_create_rutina,api_get_rutinas,api_update_user,api_delete_user,api_get_role,api_list_users,admin_update_user,api_verify_token,admin_delete_user,api_create_gimnasio,api_list_gimnasios,api_update_gimnasio,api_delete_gimnasio,api_update_rutina,api_delete_rutina,api_listar_reservas,api_modificar_reserva,api_eliminar_reserva,crear_pago,pago_exitoso,start_payment_process,generate_transaction_token,complete_payment
 
 router = DefaultRouter()
 
@@ -32,5 +32,9 @@ urlpatterns = [
     path('api/gimnasios/eliminar/', api_delete_gimnasio, name='eliminar_gimnasio'),
     path('api/update_rutina', api_update_rutina, name='api_update_rutina'),
     path('api/delete_rutina', api_delete_rutina, name='api_delete_rutina'),
-    
+    path('api/crear-pago/', crear_pago, name='crear_pago'),
+    path('api/start_payment_process/', start_payment_process, name='start_payment_process'),
+    path('api/generate_transaction_token/', generate_transaction_token, name='generate_transaction_token'),
+    path('api/complete_payment/', complete_payment, name='complete_payment'),
+    path('api/pago_exitoso/', pago_exitoso, name='pago_exitoso'),
 ]

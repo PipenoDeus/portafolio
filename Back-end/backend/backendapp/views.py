@@ -1,28 +1,198 @@
-from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib import messages
 from django.conf import settings
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.authentication import TokenAuthentication
-from django.utils.decorators import method_decorator
 from django.utils.deprecation import MiddlewareMixin
-from supabase import create_client 
+from .paypal_config import paypalrestsdk
+from django.http import HttpResponseRedirect
 
-from .models import Gym, Boxer, SparringReservation
-from .serializer import SparringReservationSerializer
+
 from .supabase_client import supabase
-from .utils import jwt_required
 
-from rest_framework import viewsets
 from datetime import datetime, timedelta
 import json
 import bcrypt
 import jwt
+import uuid
+
+# ======================== PAYPAL  ========================
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+import jwt
+from django.conf import settings
+import paypalrestsdk
+
+@csrf_exempt
+def crear_pago(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        user_id = int(payload.get('user_id'))
+
+        if not user_id:
+            return JsonResponse({'error': 'El token no contiene user_id'}, status=401)
+
+        request.session['user_id'] = user_id
+
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido o expirado'}, status=401)
+
+    transaction_token = generate_transaction_token(user_id)
+    if not transaction_token:
+        return JsonResponse({'error': 'Error al generar la transacción'}, status=500)
+
+    pago = paypalrestsdk.Payment({
+        "intent": "sale",
+        "payer": {"payment_method": "paypal"},
+        "redirect_urls": {
+            "return_url": f"http://localhost:8000/api/pago_exitoso/?transaction_token={transaction_token}",
+            "cancel_url": "http://localhost:8000/pago_cancelado/"
+        },
+        "transactions": [{
+            "item_list": {
+                "items": [{
+                    "name": "Membresía Premium",
+                    "sku": "premium001",
+                    "price": "10.00",
+                    "currency": "USD",
+                    "quantity": 1
+                }]
+            },
+            "amount": {
+                "total": "10.00",
+                "currency": "USD"
+            },
+            "description": "Compra de membresía premium"
+        }]
+    })
+
+    if pago.create():
+        for link in pago.links:
+            if link.method == "REDIRECT":
+                return JsonResponse({"redirect_url": link.href})
+    else:
+        return JsonResponse({"error": pago.error}, status=500)
 
 
+def generate_transaction_token(user_id):
 
+    transaction_token = str(uuid.uuid4())  
+
+    result = supabase.table("transactions").insert({
+        "user_id": user_id,
+        "transaction_token": transaction_token,
+        "status": "pending",  
+        "created_at": datetime.utcnow().isoformat()
+    }).execute()
+
+    if not result.data:
+        return None
+
+    return transaction_token
+
+def start_payment_process(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header:
+        return JsonResponse({'error': 'Token de autenticación no proporcionado'}, status=401)
+
+    token = auth_header.split(" ")[1] if len(auth_header.split(" ")) > 1 else None
+    if not token:
+        return JsonResponse({'error': 'Token de autenticación no proporcionado'}, status=401)
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+
+        if not user_id:
+            return JsonResponse({'error': 'Usuario no autenticado'}, status=401)
+
+        transaction_token = generate_transaction_token(user_id)
+        if not transaction_token:
+            return JsonResponse({'error': 'No se pudo generar el token de transacción'}, status=500)
+
+        return JsonResponse({'transaction_token': transaction_token}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+def complete_payment(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    body = json.loads(request.body)
+    transaction_token = body.get('transaction_token')
+    payment_status = body.get('payment_status')
+    payment_details = body.get('payment_details')
+
+    if not transaction_token or not payment_status or not payment_details:
+        return JsonResponse({'error': 'Faltan parámetros necesarios'}, status=400)
+
+    result = supabase.table("transactions").select("*").eq("transaction_token", transaction_token).single().execute()
+    transaction = result.data
+
+    if not transaction:
+        return JsonResponse({'error': 'Token de transacción no encontrado'}, status=404)
+
+    if payment_status != 'Completed':
+        return JsonResponse({'error': 'Pago no completado'}, status=400)
+
+    result = supabase.table("transactions").update({
+        "status": "completed",
+        "payment_details": payment_details,
+        "updated_at": datetime.utcnow().isoformat()
+    }).eq("transaction_token", transaction_token).execute()
+
+    if not result.data:
+        return JsonResponse({'error': 'No se pudo actualizar la transacción'}, status=500)
+
+    user_id = transaction['user_id']
+    result = supabase.table("user_profiles").update({
+        "membresy": True  
+    }).eq("id", user_id).execute()
+
+    if not result.data:
+        return JsonResponse({'error': 'No se pudo actualizar la membresía del usuario'}, status=500)
+
+    return JsonResponse({'message': 'Pago completado exitosamente'}, status=200)
+
+@csrf_exempt
+def pago_exitoso(request):
+    payment_id = request.GET.get('paymentId')
+    paypal_token = request.GET.get('token')
+    payer_id = request.GET.get('PayerID')
+    transaction_token = request.GET.get('transaction_token')
+
+    if not transaction_token:
+        return HttpResponse("Token de transacción no proporcionado", status=400)
+
+    result = supabase.table("transactions").select("user_id").eq("transaction_token", transaction_token).limit(1).execute()
+
+    if not result.data:
+        return HttpResponse("Transacción no encontrada", status=404)
+
+    user_id = result.data[0]['user_id']
+
+    try:
+        update_result = supabase.table("user_profiles").update({"membresy": True}).eq("id", user_id).execute()
+
+        if update_result.data:
+            return HttpResponseRedirect("http://localhost:3000/perfil")
+        else:
+            return HttpResponse("❌ Error al actualizar la membresía.", status=500)
+
+    except Exception as e:
+        return HttpResponse(f"Error: {str(e)}", status=500)
+
+# ======================== TOKEN ========================
 class JWTAuthenticationMiddleware(MiddlewareMixin):
     def process_request(self, request):
         auth_header = request.headers.get('Authorization')
@@ -728,7 +898,7 @@ def admin_update_user(request):
             return JsonResponse({'error': 'No autorizado: solo administradores'}, status=403)
 
         body = json.loads(request.body)
-        user_id = body.get('id')  # Asegúrate de enviar el ID del usuario desde el frontend
+        user_id = body.get('id') 
 
         if not user_id:
             return JsonResponse({'error': 'Falta el campo id'}, status=400)

@@ -22,7 +22,7 @@ const PanelAdmin = () => {
     const token = localStorage.getItem('token');
 
     if (!token) {
-      navigate('/login');
+      navigate('/');
       return;
     }
 
@@ -34,7 +34,7 @@ const PanelAdmin = () => {
       });
 
       if (!response.ok) {
-        navigate('/login');
+        navigate('/');
         return;
       }
 
@@ -47,12 +47,12 @@ const PanelAdmin = () => {
         fetchRutinas(token); 
         console.log('Rol verificado:', data.rol);
       } else {
-        navigate('/home');
+        navigate('/');
       }
 
     } catch (error) {
       console.error('Error de verificación:', error);
-      navigate('/login');
+      navigate('/');
     } finally {
       setLoading(false);
     }
