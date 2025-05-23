@@ -14,6 +14,8 @@ const PanelAdmin = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [rutinas, setRutinas] = useState([]);
   const [rutinaEditando, setRutinaEditando] = useState(null);
+  const [reservas, setReservas] = useState([]);
+  const [editReserva, setEditReserva] = useState(null);
   
   
 
@@ -43,9 +45,9 @@ const PanelAdmin = () => {
       if (data.rol === 'admin') {
         setIsAdmin(true);
         fetchUsers(token); 
-        fetchGyms();
-        fetchRutinas(token); 
-        console.log('Rol verificado:', data.rol);
+        fetchGyms(token);
+        fetchRutinas(token);
+        fetchReservas(token); 
       } else {
         navigate('/');
       }
@@ -60,6 +62,8 @@ const PanelAdmin = () => {
 
   checkAdmin();
 }, [navigate]);
+
+
 
 
 
@@ -389,6 +393,80 @@ const handleDeleteRutina = async (id) => {
     console.error('Error en eliminación:', error);
   }
 };
+
+  const fetchReservas = async (tokenParam = null) => {
+    const token = tokenParam || localStorage.getItem('token');
+    try {
+      const res = await fetch('http://localhost:8000/api/reservas/listar/', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setReservas(Array.isArray(data) ? data : []);
+      } else {
+        console.error('Error al obtener reservas');
+      }
+    } catch (err) {
+      console.error('Error de red:', err);
+    }
+  };
+
+  const handleDeleteReserva = async (reservaId) => {
+    const token = localStorage.getItem('token');
+    const confirmar = window.confirm('¿Eliminar esta reserva?');
+    if (!confirmar) return;
+
+    try {
+      const res = await fetch('http://localhost:8000/api/reservas/eliminar/', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ id: reservaId }),
+      });
+
+      if (res.ok) {
+        alert('Reserva eliminada');
+        fetchReservas();
+      } else {
+        alert('Error al eliminar');
+      }
+    } catch (err) {
+      console.error('Error al eliminar:', err);
+    }
+  };
+
+  const handleEditClickReserva = (reserva) => {
+    setEditReserva(reserva);
+  };
+
+  const handleUpdateReserva = async () => {
+    const token = localStorage.getItem('token');
+    try {
+      const res = await fetch('http://localhost:8000/api/reservas/modificar/', {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editReserva),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        alert('Reserva actualizada');
+        setEditReserva(null);
+        fetchReservas();
+      } else {
+        alert(data.error || 'Error al actualizar');
+      }
+    } catch (err) {
+      console.error('Error al actualizar:', err);
+    }
+  };
 
   if (loading) {
     return <div>Cargando...</div>;
@@ -913,6 +991,118 @@ const handleDeleteRutina = async (id) => {
               </div>
             </div>
           )} 
+            <h2 style={{ textAlign: 'center' }}>Reservas</h2>
+              <div
+                style={{
+                  maxHeight: '500px',
+                  overflowY: 'auto',
+                  border: '1px solid #ccc',
+                  borderRadius: '8px',
+                  boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+                  marginTop: '20px',
+                  padding: '10px',
+                }}
+              >
+                <table
+                  style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontFamily: 'Arial, sans-serif',
+                  }}
+                >
+                  <thead style={{ backgroundColor: '#f4f4f4' }}>
+                    <tr>
+                      <th style={thStyle}>ID</th>
+                      <th style={thStyle}>Boxer</th>
+                      <th style={thStyle}>Ring</th>
+                      <th style={thStyle}>Fecha</th>
+                      <th style={thStyle}>Inicio</th>
+                      <th style={thStyle}>Fin</th>
+                      <th style={thStyle}>Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reservas.length === 0 ? (
+                      <tr>
+                        <td colSpan="7" style={tdStyle}>No hay reservas</td>
+                      </tr>
+                    ) : (
+                      reservas.map((r) => (
+                        <tr key={r.id}>
+                          <td style={tdStyle}>{r.id}</td>
+                          <td style={tdStyle}>{r.boxer_id}</td>
+                          <td style={tdStyle}>{r.ring_id}</td>
+                          <td style={tdStyle}>{r.fecha}</td>
+                          <td style={tdStyle}>{r.hora_inicio}</td>
+                          <td style={tdStyle}>{r.hora_fin}</td>
+                          <td style={tdStyle}>
+                            <button onClick={() => handleEditClickReserva(r)} style={btnStyle}>Editar</button>
+                            <button
+                              onClick={() => handleDeleteReserva(r.id)}
+                              style={{ ...btnStyle, backgroundColor: '#e74c3c', marginLeft: '10px' }}
+                            >
+                              Eliminar
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Modal de edición de reserva */}
+              {editReserva && (
+                <div
+                  style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '100%',
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    zIndex: 1000,
+                  }}
+                >
+                  <div
+                    style={{
+                      background: 'white',
+                      padding: '20px',
+                      borderRadius: '10px',
+                      width: '400px',
+                      maxHeight: '90%',
+                      overflowY: 'auto',
+                    }}
+                  >
+                    <h3>Editar Reserva #{editReserva.id}</h3>
+                    <input
+                      placeholder="Fecha"
+                      value={editReserva.fecha}
+                      onChange={e => setEditReserva({ ...editReserva, fecha: e.target.value })}
+                      style={{ width: '100%', marginBottom: '10px' }}
+                    />
+                    <input
+                      placeholder="Hora Inicio"
+                      value={editReserva.hora_inicio}
+                      onChange={e => setEditReserva({ ...editReserva, hora_inicio: e.target.value })}
+                      style={{ width: '100%', marginBottom: '10px' }}
+                    />
+                    <input
+                      placeholder="Hora Fin"
+                      value={editReserva.hora_fin}
+                      onChange={e => setEditReserva({ ...editReserva, hora_fin: e.target.value })}
+                      style={{ width: '100%', marginBottom: '10px' }}
+                    />
+                    <button onClick={handleUpdateReserva} style={btnStyle}>Guardar</button>
+                    <button onClick={() => setEditReserva(null)} style={{ ...btnStyle, backgroundColor: '#ccc', marginLeft: '10px' }}>
+                      Cancelar
+                    </button>
+                  </div>
+                </div>
+              )}
         </div>
         
         
