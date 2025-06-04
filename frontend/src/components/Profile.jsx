@@ -13,6 +13,7 @@ const Profile = () => {
     email: '',
     first_name: '',
     last_name: '',
+    number: '',
     city: '',
     birthdate: '',
     created_at: '',
@@ -72,6 +73,7 @@ const Profile = () => {
       setFormData({
         first_name: user.first_name || '',
         last_name: user.last_name || '',
+        number: user.number || '',
         city: user.city || '',
         birthdate: user.birthdate || '',
         email: user.email || '',
@@ -162,6 +164,7 @@ const Profile = () => {
       first_name: formData.first_name,
       last_name: formData.last_name,
       city: formData.city,
+      number: formData.number,
       birthdate: formData.birthdate,
       email: formData.email
     })
@@ -270,6 +273,7 @@ const Profile = () => {
             <>
               <p><strong>Nombre:</strong> {user.first_name} {user.last_name}</p>
               <p><strong>Email:</strong> {user.email}</p>
+              <p><strong>Teléfono:</strong> {user.number}</p>
               <p><strong>Ciudad:</strong> {user.city}</p>
               <p><strong>Fecha de nacimiento:</strong> {user.birthdate}</p>
               <p><strong>Fecha de creación:</strong> {new Date(user.created_at).toISOString().split('T')[0]}</p>
@@ -311,6 +315,15 @@ const Profile = () => {
                   className="form-control"
                   name="last_name"
                   value={formData.last_name}
+                  onChange={handleChange}
+                />
+              </div>
+              <div className="form-group">
+                <label>Teléfono</label>
+                <input
+                  className="form-control"
+                  name="number"
+                  value={formData.number}
                   onChange={handleChange}
                 />
               </div>

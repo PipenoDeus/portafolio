@@ -1,0 +1,22 @@
+.th-style {
+  padding: 12px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+  font-weight: bold;
+}
+
+.td-style {
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  text-align: left;
+}
+
+.btn-style {
+  margin-right: 5px;
+  padding: 6px 10px;
+  background-color: #3498db;
+  color: #fff;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}

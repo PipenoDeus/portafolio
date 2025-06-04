@@ -6,6 +6,7 @@ const Register = () => {
     password: '',
     first_name: '',
     last_name: '',
+    number: '',
     city: '',
     birthdate: '',
   });
@@ -18,30 +19,29 @@ const Register = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
+    e.preventDefault();
 
-  try {
-    const response = await fetch('http://localhost:8000/api/register/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
-    });
+    try {
+      const response = await fetch('http://localhost:8000/api/register/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (response.ok) {
-      alert('¡Registro exitoso!');
-    } else {
-      alert('Error: ' + data.error);
+      if (response.ok) {
+        alert('¡Registro exitoso!');
+      } else {
+        alert('Error: ' + data.error);
+      }
+    } catch (err) {
+      console.error('Error al registrar', err);
+      alert('Ocurrió un error al registrar.');
     }
-  } catch (err) {
-    console.error('Error al registrar', err);
-    alert('Ocurrió un error al registrar.');
-  }
-};
-
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -64,6 +64,10 @@ const Register = () => {
             <div className="mb-3">
               <label className="form-label">Apellido</label>
               <input type="text" className="form-control" name="last_name" value={formData.last_name} onChange={handleChange} required />
+            </div>
+            <div className="mb-3">
+              <label className="form-label">Número de Teléfono</label>
+              <input type="tel" className="form-control" name="number" value={formData.number} onChange={handleChange} required />
             </div>
             <div className="mb-3">
               <label className="form-label">Ciudad</label>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../connection/supabaseClient';
+import "./PanelAdmin.css"
 
 const PanelAdmin = () => {
   const [users, setUsers] = useState([]);
@@ -16,7 +17,10 @@ const PanelAdmin = () => {
   const [rutinaEditando, setRutinaEditando] = useState(null);
   const [reservas, setReservas] = useState([]);
   const [editReserva, setEditReserva] = useState(null);
-  
+  const [clases, setClases] = useState([]);
+  const [editClase, setEditClase] = useState(null);
+  const [blogs, setBlogs] = useState([]);
+  const [editBlog, setEditBlog] = useState(null);
   
 
   useEffect(() => {
@@ -48,6 +52,8 @@ const PanelAdmin = () => {
         fetchGyms(token);
         fetchRutinas(token);
         fetchReservas(token); 
+        fetchClases(token);
+        fetchBlogs(token);
       } else {
         navigate('/');
       }
@@ -62,8 +68,6 @@ const PanelAdmin = () => {
 
   checkAdmin();
 }, [navigate]);
-
-
 
 
 
@@ -336,6 +340,14 @@ const fetchRutinas = async (token) => {
 const handleUpdateRutina = async () => {
   const token = localStorage.getItem('token');
 
+  const rutinaValida = {
+    id: rutinaEditando.id,
+    nombre: rutinaEditando.nombre,
+    descripcion: rutinaEditando.descripcion,
+    nivel: rutinaEditando.nivel,
+    entrenador_id: rutinaEditando.entrenador_id,
+  };
+
   try {
     const response = await fetch('http://localhost:8000/api/update_rutina', {
       method: 'PUT',
@@ -343,24 +355,25 @@ const handleUpdateRutina = async () => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify(rutinaEditando),
+      body: JSON.stringify(rutinaValida),
     });
+
+    const resultText = await response.text();
+    console.log("Respuesta cruda:", resultText);
 
     if (!response.ok) {
       throw new Error('Error al actualizar la rutina');
     }
 
-    const data = await response.json();
-    console.log("Rutina actualizada:", data);
-
+    const result = JSON.parse(resultText);
+    const updatedRutina = result.data[0];
 
     setRutinas(prev =>
-      prev.map(rutina => (rutina.id === data.id ? data : rutina)) 
+      prev.map(rutina => (rutina.id === updatedRutina.id ? updatedRutina : rutina))
     );
 
-    fetchRutinas(token); 
-
-    setRutinaEditando(null); 
+    fetchRutinas(token);
+    setRutinaEditando(null);
 
   } catch (error) {
     console.error('Error en actualización:', error);
@@ -468,6 +481,162 @@ const handleDeleteRutina = async (id) => {
     }
   };
 
+  const fetchClases = async (token) => {
+    try {
+      const res = await fetch('http://localhost:8000/api/clases/', {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      console.log('Clases recibidas:', data);
+
+      if (Array.isArray(data)) {
+        setClases(data);
+      } else if (data.results && Array.isArray(data.results)) {
+        setClases(data.results);
+      } else {
+        console.error('Formato inesperado:', data);
+        setClases([]);
+      }
+    } catch (error) {
+      console.error('Error al cargar clases:', error);
+      setClases([]);
+    }
+  };
+
+const handleDeleteClase = async (id) => {
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch('http://localhost:8000/api/clases/eliminar/', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (res.ok) {
+      fetchClases(token); 
+    } else {
+      const data = await res.json();
+      console.error('Error al eliminar clase:', data);
+    }
+  } catch (err) {
+    console.error('Error eliminando clase:', err);
+  }
+};
+
+
+const handleUpdateClase = async () => {
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch('http://localhost:8000/api/clases/editar/', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(editClase),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      fetchClases(token);
+      setEditClase(null);
+    } else {
+      console.error('Error del backend:', data);
+    }
+  } catch (err) {
+    console.error('Error actualizando clase:', err);
+  }
+};
+
+const fetchBlogs = async (token) => {
+  try {
+    const res = await fetch('http://localhost:8000/api/blogs/listar/', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    const data = await res.json();
+
+
+    if (Array.isArray(data)) {
+      setBlogs(data);  
+    } else {
+      console.error('La respuesta no es un arreglo de blogs');
+      setBlogs([]);  
+    }
+  } catch (error) {
+    console.error('Error al cargar blogs:', error);
+    setBlogs([]);
+  }
+};
+
+const handleUpdateBlog = async () => {
+  const token = localStorage.getItem('token');
+
+  const blogData = {
+    id: editBlog.id,
+    titulo: editBlog.titulo,
+    contenido: editBlog.contenido,
+    aprobado: editBlog.aprobado,
+  };
+
+  try {
+    const res = await fetch('http://localhost:8000/api/blogs/actualizar/', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(blogData),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      console.log('Blog actualizado:', data);
+      fetchBlogs(token); 
+      setEditBlog(null); 
+    } else {
+      console.error('Error al actualizar blog:', data);
+      alert('Error al actualizar blog');
+    }
+  } catch (err) {
+    console.error('Error actualizando blog:', err);
+    alert('Error inesperado');
+  }
+};
+
+const handleDeleteBlog = async (id) => {
+  const token = localStorage.getItem('token');
+  try {
+    const res = await fetch('http://localhost:8000/api/blogs/eliminar/', {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (res.ok) {
+      fetchBlogs(token);
+    } else {
+      const data = await res.json();
+      console.error('Error al eliminar blog:', data);
+    }
+  } catch (err) {
+    console.error('Error eliminando blog:', err);
+  }
+};
+
+
   if (loading) {
     return <div>Cargando...</div>;
   }
@@ -515,6 +684,12 @@ const handleDeleteRutina = async (id) => {
               placeholder="Apellido"
               value={editUser.last_name || ''}
               onChange={(e) => setEditUser({ ...editUser, last_name: e.target.value })}
+              style={{ width: '100%', marginBottom: '10px' }}
+            />
+            <input
+              placeholder="Numero"
+              value={editUser.number || ''}
+              onChange={(e) => setEditUser({ ...editUser, number: e.target.value })}
               style={{ width: '100%', marginBottom: '10px' }}
             />
             <input
@@ -592,6 +767,7 @@ const handleDeleteRutina = async (id) => {
                   <th style={thStyle}>Email</th>
                   <th style={thStyle}>Nombre</th>
                   <th style={thStyle}>Apellido</th>
+                  <th style={thStyle}>Numero</th>
                   <th style={thStyle}>Ciudad</th>
                   <th style={thStyle}>Nacimiento</th>
                   <th style={thStyle}>Creado</th>
@@ -620,6 +796,7 @@ const handleDeleteRutina = async (id) => {
                       <td style={tdStyle}>{user.email}</td>
                       <td style={tdStyle}>{user.first_name}</td>
                       <td style={tdStyle}>{user.last_name}</td>
+                      <td style={tdStyle}>{user.number}</td>
                       <td style={tdStyle}>{user.city}</td>
                       <td style={tdStyle}>{user.birthdate}</td>
                       <td style={tdStyle}>
@@ -897,9 +1074,13 @@ const handleDeleteRutina = async (id) => {
                     rutinas.map((rutina, index) => (
                       <tr key={index}>
                         <td style={tdStyle}>{rutina.nombre}</td>
-                        <td style={tdStyle}>{rutina.descripcion}</td>
+                        <td style={tdStyle}>S
+                          {rutina.descripcion.length > 100
+                            ? rutina.descripcion.slice(0, 100) + '...'
+                            : rutina.descripcion}
+                        </td>
                         <td style={tdStyle}>{rutina.nivel}</td>
-                        <td style={tdStyle}>{rutina.entrenador_id}</td>
+                        <td style={tdStyle}>{rutina.entrenador_nombre || 'Sin nombre'}</td>
                         <td style={tdStyle}>
                           <button style={btnStyle} onClick={() => setRutinaEditando(rutina)}>
                             Editar
@@ -968,17 +1149,6 @@ const handleDeleteRutina = async (id) => {
                   }
                   style={{ width: '100%', marginBottom: '10px' }}
                 />
-                <input
-                  placeholder="Entrenador ID"
-                  value={rutinaEditando.entrenador_id}
-                  onChange={e =>
-                    setRutinaEditando({
-                      ...rutinaEditando,
-                      entrenador_id: e.target.value,
-                    })
-                  }
-                  style={{ width: '100%', marginBottom: '10px' }}
-                />
                 <button onClick={handleUpdateRutina} style={btnStyle}>
                   Guardar
                 </button>
@@ -1012,9 +1182,9 @@ const handleDeleteRutina = async (id) => {
                 >
                   <thead style={{ backgroundColor: '#f4f4f4' }}>
                     <tr>
-                      <th style={thStyle}>ID</th>
                       <th style={thStyle}>Boxer</th>
                       <th style={thStyle}>Ring</th>
+                      <th style={thStyle}>Oponente</th>
                       <th style={thStyle}>Fecha</th>
                       <th style={thStyle}>Inicio</th>
                       <th style={thStyle}>Fin</th>
@@ -1024,14 +1194,18 @@ const handleDeleteRutina = async (id) => {
                   <tbody>
                     {reservas.length === 0 ? (
                       <tr>
-                        <td colSpan="7" style={tdStyle}>No hay reservas</td>
+                        <td colSpan="8" style={tdStyle}>No hay reservas</td>
                       </tr>
                     ) : (
                       reservas.map((r) => (
                         <tr key={r.id}>
-                          <td style={tdStyle}>{r.id}</td>
-                          <td style={tdStyle}>{r.boxer_id}</td>
-                          <td style={tdStyle}>{r.ring_id}</td>
+                          <td style={tdStyle}>
+                            {r.boxeador_nombre} ({r.boxeador_email})
+                          </td>
+                          <td style={tdStyle}>{r.ring_nombre}</td>
+                          <td style={tdStyle}>
+                            {r.oponente_nombre} ({r.oponente_email || 'sin email'})
+                          </td>
                           <td style={tdStyle}>{r.fecha}</td>
                           <td style={tdStyle}>{r.hora_inicio}</td>
                           <td style={tdStyle}>{r.hora_fin}</td>
@@ -1050,8 +1224,6 @@ const handleDeleteRutina = async (id) => {
                   </tbody>
                 </table>
               </div>
-
-              {/* Modal de edición de reserva */}
               {editReserva && (
                 <div
                   style={{
@@ -1096,6 +1268,12 @@ const handleDeleteRutina = async (id) => {
                       onChange={e => setEditReserva({ ...editReserva, hora_fin: e.target.value })}
                       style={{ width: '100%', marginBottom: '10px' }}
                     />
+                    <input
+                      placeholder="Oponente Email"
+                      value={editReserva.oponente_email || ''}
+                      onChange={e => setEditReserva({ ...editReserva, oponente_email: e.target.value })}
+                      style={{ width: '100%', marginBottom: '10px' }}
+                    />
                     <button onClick={handleUpdateReserva} style={btnStyle}>Guardar</button>
                     <button onClick={() => setEditReserva(null)} style={{ ...btnStyle, backgroundColor: '#ccc', marginLeft: '10px' }}>
                       Cancelar
@@ -1103,6 +1281,239 @@ const handleDeleteRutina = async (id) => {
                   </div>
                 </div>
               )}
+              <h2 style={{ textAlign: 'center' }}>Clases</h2>
+                <div style={{
+                  maxHeight: '500px',
+                  overflowY: 'auto',
+                  border: '1px solid #ccc',
+                  borderRadius: '8px',
+                  boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+                  marginTop: '20px',
+                  padding: '10px',
+                }}>
+                  <table style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    fontFamily: 'Arial, sans-serif',
+                  }}>
+                    <thead style={{ backgroundColor: '#f4f4f4' }}>
+                      <tr>
+                        <th style={thStyle}>Entrenador</th>
+                        <th style={thStyle}>Título</th>
+                        <th style={thStyle}>Descripción</th>
+                        <th style={thStyle}>Creado</th>
+                        <th style={thStyle}>Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {clases.length === 0 ? (
+                        <tr>
+                          <td colSpan="5" style={tdStyle}>No hay clases</td>
+                        </tr>
+                      ) : (
+                        clases.map((c) => (
+                          <tr key={c.id}>
+                            <td style={tdStyle}>{c.nombre_entrenador}</td>
+                            <td style={tdStyle}>{c.titulo}</td>
+                            <td style={tdStyle}>{c.descripcion}</td>
+                            <td style={tdStyle}>{new Date(c.created_at).toLocaleDateString()}</td>
+                            <td style={tdStyle}>
+                              <button onClick={() => setEditClase(c)} style={btnStyle}>Editar</button>
+                              <button
+                                onClick={() => handleDeleteClase(c.id)}
+                                style={{ ...btnStyle, backgroundColor: '#e74c3c', marginLeft: '10px' }}
+                              >
+                                Eliminar
+                              </button>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                {editClase && (
+                  <div
+                    style={{
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      backgroundColor: 'rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      zIndex: 1000,
+                    }}
+                  >
+                    <div
+                      style={{
+                        background: 'white',
+                        padding: '20px',
+                        borderRadius: '10px',
+                        width: '400px',
+                        maxHeight: '90%',
+                        overflowY: 'auto',
+                      }}
+                    >
+                      <h3>Editar Clase #{editClase.id}</h3>
+                      <input
+                        placeholder="Título"
+                        value={editClase.titulo}
+                        onChange={e => setEditClase({ ...editClase, titulo: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        placeholder="Descripción"
+                        value={editClase.descripcion}
+                        onChange={e => setEditClase({ ...editClase, descripcion: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        placeholder="Video URL"
+                        value={editClase.video_url}
+                        onChange={e => setEditClase({ ...editClase, video_url: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <button onClick={handleUpdateClase} style={btnStyle}>Guardar</button>
+                      <button onClick={() => setEditClase(null)} style={{ ...btnStyle, backgroundColor: '#ccc', marginLeft: '10px' }}>
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+                <h2 style={{ textAlign: 'center' }}>Blogs</h2>
+                  <div style={{
+                    maxHeight: '500px',
+                    overflowY: 'auto',
+                    border: '1px solid #ccc',
+                    borderRadius: '8px',
+                    boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+                    marginTop: '20px',
+                    padding: '10px',
+                  }}>
+                    <table style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      fontFamily: 'Arial, sans-serif',
+                    }}>
+                      <thead style={{ backgroundColor: '#f4f4f4' }}>
+                        <tr>
+                          <th style={thStyle}>Título</th>
+                          <th style={thStyle}>Descripcion</th>
+                          <th style={thStyle}>Creado</th>
+                          <th style={thStyle}>Estado</th>
+                          <th style={thStyle}>Acciones</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {blogs.length === 0 ? (
+                          <tr>
+                            <td colSpan="5" style={tdStyle}>No hay blogs</td>
+                          </tr>
+                        ) : (
+                          blogs.map((b) => (
+                            <tr key={b.id}>
+                              <td style={tdStyle}>{b.titulo}</td>
+                              <td style={tdStyle}>{b.contenido}</td>
+                              <td style={tdStyle}>{new Date(b.fecha_creacion).toLocaleDateString()}</td>
+                              <td style={tdStyle}>{b.aprobado ? 'Aprobado' : 'No Aprobado'}</td>
+                              <td style={tdStyle}>
+                                <button onClick={() => setEditBlog(b)} style={btnStyle}>Editar</button>
+                                <button
+                                  onClick={() => handleDeleteBlog(b.id)}
+                                  style={{ ...btnStyle, backgroundColor: '#e74c3c', marginLeft: '10px' }}
+                                >
+                                  Eliminar
+                                </button>
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {editBlog && (
+                    <div
+                      style={{
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        zIndex: 1000,
+                      }}
+                    >
+                      <div
+                        style={{
+                          background: 'white',
+                          padding: '20px',
+                          borderRadius: '10px',
+                          width: '400px',
+                          maxHeight: '90%',
+                          overflowY: 'auto',
+                        }}
+                      >
+                        <h3>Editar Blog #{editBlog.id}</h3>
+                        <input
+                          placeholder="Título"
+                          value={editBlog.titulo}
+                          onChange={e => setEditBlog({ ...editBlog, titulo: e.target.value })}
+                          style={{ width: '100%', marginBottom: '10px' }}
+                        />
+                        <textarea
+                          placeholder="Contenido"
+                          value={editBlog.contenido}
+                          onChange={e => setEditBlog({ ...editBlog, contenido: e.target.value })}
+                          style={{ width: '100%', height: '100px', marginBottom: '10px' }}
+                        />
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
+                          <span>{editBlog.aprobado ? 'Aprobado' : 'No Aprobado'}</span>
+                          <label style={{ position: 'relative', display: 'inline-block', width: '40px', height: '20px' }}>
+                            <input
+                              type="checkbox"
+                              checked={editBlog.aprobado}
+                              onChange={(e) => setEditBlog({ ...editBlog, aprobado: e.target.checked })}
+                              style={{ opacity: 0, width: 0, height: 0 }}
+                            />
+                            <span style={{
+                              position: 'absolute',
+                              cursor: 'pointer',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: editBlog.aprobado ? '#4CAF50' : '#ccc',
+                              transition: '.4s',
+                              borderRadius: '34px',
+                            }} />
+                            <span style={{
+                              position: 'absolute',
+                              content: '""',
+                              height: '14px',
+                              width: '14px',
+                              left: editBlog.aprobado ? '22px' : '4px',
+                              bottom: '3px',
+                              backgroundColor: 'white',
+                              transition: '.4s',
+                              borderRadius: '50%',
+                            }} />
+                          </label>
+                        </label>
+                        <button onClick={handleUpdateBlog} style={btnStyle}>Guardar</button>
+                        <button onClick={() => setEditBlog(null)} style={{ ...btnStyle, backgroundColor: '#ccc', marginLeft: '10px' }}>
+                          Cancelar
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
         </div>
         
         
@@ -1113,6 +1524,7 @@ const handleDeleteRutina = async (id) => {
   );
 };
   
+
 
 const thStyle = {
   padding: '12px',

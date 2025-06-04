@@ -13,73 +13,75 @@ import json
 import bcrypt
 import jwt
 import uuid
+from uuid import UUID
 
 # ======================== PAYPAL  ========================
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-import jwt
-from django.conf import settings
-import paypalrestsdk
-
 @csrf_exempt
 def crear_pago(request):
-    if request.method != 'POST':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
-
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
-
-    token = auth_header.split(' ')[1]
     try:
-        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
-        user_id = int(payload.get('user_id'))
+        if request.method != 'POST':
+            return JsonResponse({'error': 'Método no permitido'}, status=405)
 
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+        token = auth_header.split(' ')[1]
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        user_id = payload.get('user_id')
         if not user_id:
             return JsonResponse({'error': 'El token no contiene user_id'}, status=401)
 
+        try:
+            user_id = str(UUID(user_id))  
+        except (ValueError, TypeError):
+            return JsonResponse({'error': 'user_id inválido'}, status=401)
+
         request.session['user_id'] = user_id
 
-    except jwt.InvalidTokenError:
-        return JsonResponse({'error': 'Token inválido o expirado'}, status=401)
+        transaction_token = generate_transaction_token(user_id)
+        if not transaction_token:
+            return JsonResponse({'error': 'Error al generar la transacción'}, status=500)
 
-    transaction_token = generate_transaction_token(user_id)
-    if not transaction_token:
-        return JsonResponse({'error': 'Error al generar la transacción'}, status=500)
-
-    pago = paypalrestsdk.Payment({
-        "intent": "sale",
-        "payer": {"payment_method": "paypal"},
-        "redirect_urls": {
-            "return_url": f"http://localhost:8000/api/pago_exitoso/?transaction_token={transaction_token}",
-            "cancel_url": "http://localhost:8000/pago_cancelado/"
-        },
-        "transactions": [{
-            "item_list": {
-                "items": [{
-                    "name": "Membresía Premium",
-                    "sku": "premium001",
-                    "price": "10.00",
-                    "currency": "USD",
-                    "quantity": 1
-                }]
+        pago = paypalrestsdk.Payment({
+            "intent": "sale",
+            "payer": {"payment_method": "paypal"},
+            "redirect_urls": {
+                "return_url": f"http://localhost:8000/api/pago_exitoso/?transaction_token={transaction_token}",
+                "cancel_url": "http://localhost:8000/pago_cancelado/"
             },
-            "amount": {
-                "total": "10.00",
-                "currency": "USD"
-            },
-            "description": "Compra de membresía premium"
-        }]
-    })
+            "transactions": [{
+                "item_list": {
+                    "items": [{
+                        "name": "Membresía Premium",
+                        "sku": "premium001",
+                        "price": "10.00",
+                        "currency": "USD",
+                        "quantity": 1
+                    }]
+                },
+                "amount": {
+                    "total": "10.00",
+                    "currency": "USD"
+                },
+                "description": "Compra de membresía premium"
+            }]
+        })
 
-    if pago.create():
-        for link in pago.links:
-            if link.method == "REDIRECT":
-                return JsonResponse({"redirect_url": link.href})
-    else:
-        return JsonResponse({"error": pago.error}, status=500)
+        if pago.create():
+            for link in pago.links:
+                if link.method == "REDIRECT":
+                    return JsonResponse({"redirect_url": link.href})
+        else:
+            return JsonResponse({"error": str(pago.error)}, status=500)
 
+    except Exception as e:
+        import traceback
+        print(traceback.format_exc())
+        return JsonResponse({'error': f'Error interno: {str(e)}'}, status=500)
 
+@csrf_exempt
 def generate_transaction_token(user_id):
 
     transaction_token = str(uuid.uuid4())  
@@ -96,6 +98,7 @@ def generate_transaction_token(user_id):
 
     return transaction_token
 
+@csrf_exempt
 def start_payment_process(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
@@ -123,7 +126,8 @@ def start_payment_process(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-    
+
+@csrf_exempt
 def complete_payment(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
@@ -258,10 +262,14 @@ def api_register(request):
         last_name = body.get('last_name')
         city = body.get('city')
         birthdate = body.get('birthdate')
+        number = body.get('number')
         membresy = body.get('membresy', False)
 
-        DEFAULT_AVATAR_URL = "https://xtckolxiipfxnstcbofm.supabase.co/storage/v1/object/public/avatars//Leonardo_Phoenix_10_a_stylized_highcontrast_black_and_white_il_2.jpg"
+        DEFAULT_AVATAR_URL = "https://eakoogbjlxlidtjclcxo.supabase.co/storage/v1/object/public/avatars//Leonardo_Phoenix_10_a_stylized_highcontrast_black_and_white_il_2.jpg"
         avatar_url = body.get('avatar_url') or DEFAULT_AVATAR_URL
+
+        if not number:
+            return JsonResponse({'error': 'Número de celular es requerido'}, status=400)
 
         exists = supabase.table("user_profiles").select("id").eq("email", email).execute()
         if exists.data:
@@ -276,6 +284,7 @@ def api_register(request):
             "last_name": last_name,
             "city": city,
             "birthdate": birthdate,
+            "number": number,
             "avatar_url": avatar_url,
             "membresy": membresy,
             "created_at": datetime.utcnow().isoformat()
@@ -322,7 +331,7 @@ def api_update_user(request):
         if not email:
             email = payload.get('email')
 
-        fields = ['first_name', 'last_name', 'city', 'birthdate', 'avatar_url', 'membresy', 'password']
+        fields = ['first_name', 'last_name', 'city', 'birthdate', 'avatar_url', 'membresy', 'password', 'number']
         update_data = {field: body[field] for field in fields if field in body}
 
         if email != payload.get('email'):
@@ -426,20 +435,17 @@ def obtener_gimnasios(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-
-# ======================== CLASES ========================
+# ======================== OBTENER CLASES ========================
 @csrf_exempt
 def obtener_clases(request):
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
-
     try:
         result = supabase.table("clases").select("*").execute()
-        return JsonResponse(result.data, safe=False)
+        if result.data:
+            return JsonResponse(result.data, safe=False, status=200)
+        return JsonResponse({'error': 'No se encontraron clases'}, status=404)
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
-
 
 # ======================== RESERVA DE RING ========================
 @csrf_exempt
@@ -466,14 +472,14 @@ def api_reservar_ring(request):
         fecha = body.get('fecha')
         hora_inicio = body.get('hora_inicio')
         hora_fin = body.get('hora_fin')
-        oponente_email = body.get('oponente_email')
+        oponent_email = body.get('oponente_email')
         descripcion = body.get('descripcion')
 
         if not all([boxer_id, ring_id, fecha, hora_inicio, hora_fin]):
             return JsonResponse({'error': 'Faltan campos obligatorios'}, status=400)
 
-        if oponente_email:
-            oponente = supabase.table("user_profiles").select("email").eq("email", oponente_email).execute()
+        if oponent_email:
+            oponente = supabase.table("user_profiles").select("email").eq("email", oponent_email).execute()
             if not oponente.data:
                 return JsonResponse({'error': 'El email del oponente no está registrado'}, status=404)
 
@@ -492,7 +498,7 @@ def api_reservar_ring(request):
             "fecha": fecha,
             "hora_inicio": hora_inicio,
             "hora_fin": hora_fin,
-            "oponente_email": oponente_email,
+            "oponent_email": oponent_email,
             "descripcion": descripcion,
             "estado": "pendiente",
             "created_at": datetime.utcnow().isoformat()
@@ -527,11 +533,47 @@ def api_listar_reservas(request):
         rol = payload.get('rol')
 
         if rol == 'admin':
-            result = supabase.table("reservas").select("*").execute()
+            reservas_resp = supabase.table("reservas").select("*").execute()
         else:
-            result = supabase.table("reservas").select("*").eq("boxer_id", user_id).execute()
+            reservas_resp = supabase.table("reservas").select("*").eq("boxer_id", user_id).execute()
+        reservas = reservas_resp.data
 
-        return JsonResponse(result.data, safe=False, status=200)
+        perfiles_resp = supabase.table("user_profiles").select("id, email, first_name, last_name").execute()
+        perfiles = perfiles_resp.data
+
+        rings_resp = supabase.table("rings").select("id, nombre").execute()
+        rings = rings_resp.data
+
+        for reserva in reservas:
+
+            boxeador = next((u for u in perfiles if u["id"] == reserva["boxer_id"]), None)
+            if boxeador:
+                reserva["boxeador_nombre"] = f'{boxeador["first_name"]} {boxeador["last_name"]}'
+                reserva["boxeador_email"] = boxeador["email"]
+            else:
+                reserva["boxeador_nombre"] = "Desconocido"
+                reserva["boxeador_email"] = "Desconocido"
+
+            reserva_email = (reserva.get("oponent_email") or "").strip().lower()
+            oponente = next(
+                (u for u in perfiles if (u.get("email") or "").strip().lower() == reserva_email),
+                None
+            )
+
+            if oponente:
+                reserva["oponente_nombre"] = f'{oponente["first_name"]} {oponente["last_name"]}'
+                reserva["oponente_email"] = oponente["email"]
+            else:
+                reserva["oponente_nombre"] = "Desconocido"
+                reserva["oponente_email"] = reserva.get("oponent_email", "Sin email")
+
+            ring = next((r for r in rings if r["id"] == reserva["ring_id"]), None)
+            if ring:
+                reserva["ring_nombre"] = ring["nombre"]
+            else:
+                reserva["ring_nombre"] = "Desconocido"
+
+        return JsonResponse(reservas, safe=False, status=200)
 
     except jwt.ExpiredSignatureError:
         return JsonResponse({'error': 'Token expirado'}, status=401)
@@ -539,6 +581,8 @@ def api_listar_reservas(request):
         return JsonResponse({'error': 'Token inválido'}, status=401)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
     
 # ======================== MODIFICAR RESERVAS ========================
 @csrf_exempt
@@ -573,6 +617,11 @@ def api_modificar_reserva(request):
 
         campos_editables = ['fecha', 'hora_inicio', 'hora_fin', 'oponente_email', 'descripcion', 'estado']
         update_data = {campo: body[campo] for campo in campos_editables if campo in body}
+        if 'oponente_email' in update_data:
+            oponente_check = supabase.table("user_profiles").select("email").eq("email", update_data['oponente_email']).single().execute()
+            if not oponente_check.data:
+                return JsonResponse({'error': 'El oponente ingresado no existe en el sistema'}, status=400)
+
 
         if not update_data:
             return JsonResponse({'error': 'No se proporcionaron campos válidos para actualizar'}, status=400)
@@ -734,12 +783,20 @@ def api_get_rutinas(request):
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
 
-        result = supabase.table("rutinas").select("*").execute()
+        result = supabase.table("rutinas").select("*, user_profiles!fk_entrenador(first_name, last_name)").execute()
+
+        for rutina in result.data:
+            if 'user_profiles' in rutina and rutina['user_profiles']:
+                first = rutina['user_profiles'].get('first_name', '')
+                last = rutina['user_profiles'].get('last_name', '')
+                rutina['entrenador_nombre'] = f"{first} {last}".strip()
+            rutina.pop('user_profiles', None)
 
         return JsonResponse({'message': 'Rutinas obtenidas', 'data': result.data}, status=200)
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
 # ======================== MODIFICAR RUTINA ========================    
 @csrf_exempt
 def api_update_rutina(request):
@@ -791,7 +848,6 @@ def api_delete_rutina(request):
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
 
-        # Validar rol
         rol = payload.get('rol')
         if rol not in ['admin', 'entrenador']:
             return JsonResponse({'error': 'No autorizado. Solo administradores o entrenadores pueden eliminar rutinas.'}, status=403)
@@ -910,7 +966,7 @@ def admin_update_user(request):
                 return JsonResponse({'error': 'El correo electrónico ya está registrado'}, status=409)
 
 
-        fields = ['first_name', 'last_name', 'city', 'birthdate', 'avatar_url', 'membresy', 'rol', 'email']
+        fields = ['first_name', 'last_name','number', 'city', 'birthdate', 'avatar_url', 'membresy', 'rol', 'email']
         update_data = {field: body[field] for field in fields if field in body}
 
         if not update_data:
@@ -1081,3 +1137,232 @@ def api_delete_gimnasio(request):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
+# ======================== LISTAR CLASES =========================
+@csrf_exempt
+def api_list_clases(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        result = supabase.table("clases").select(
+            "id, titulo, descripcion, video_url, created_at, entrenador_id, user_profiles!clases_entrenador_id_fkey(first_name, last_name)"
+        ).execute()
+
+        clases = result.data
+
+        for clase in clases:
+            user = clase.get("user_profiles", {})
+            clase["nombre_entrenador"] = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+            clase.pop("user_profiles", None)
+
+        return JsonResponse(clases, safe=False, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== CREAR CLASES =========================
+@csrf_exempt
+def api_create_clase(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        user_role = payload.get('rol')
+        if user_role not in ['entrenador', 'admin']:
+            return JsonResponse({'error': 'No autorizado'}, status=403)
+
+        data = json.loads(request.body)
+        required_fields = ['entrenador_id', 'titulo', 'descripcion', 'video_url']
+        if not all(field in data for field in required_fields):
+            return JsonResponse({'error': 'Faltan campos requeridos'}, status=400)
+
+        result = supabase.table("clases").insert(data).execute()
+        return JsonResponse({'message': 'Clase creada', 'data': result.data}, status=201)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.DecodeError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# ======================== EDITAR CLASES =========================
+
+@csrf_exempt
+def api_update_clase(request):
+    if request.method != 'PUT':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        data = json.loads(request.body)
+        clase_id = data.get('id')
+        if not clase_id:
+            return JsonResponse({'error': 'Falta el ID de la clase'}, status=400)
+
+        update_fields = {k: v for k, v in data.items() if k != 'id'}
+        result = supabase.table("clases").update(update_fields).eq("id", clase_id).execute()
+
+        return JsonResponse({'message': 'Clase actualizada', 'data': result.data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+# ======================== ELIMINAR CLASES ========================
+
+@csrf_exempt
+def api_delete_clase(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        data = json.loads(request.body)
+        clase_id = data.get('id')
+        if not clase_id:
+            return JsonResponse({'error': 'Falta el ID de la clase'}, status=400)
+
+        result = supabase.table("clases").delete().eq("id", clase_id).execute()
+        return JsonResponse({'message': 'Clase eliminada', 'data': result.data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== LISTAR BLOGS ========================
+
+@csrf_exempt
+def api_list_blogs_admin(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        result = supabase.table("blogs").select(
+            "id, user_id, titulo, contenido, fecha_creacion, aprobado, user_profiles!blogs_user_id_fkey(first_name, last_name)"
+        ).execute()
+
+        blogs = result.data
+        for blog in blogs:
+            user = blog.get("user_profiles", {})
+            blog["autor"] = f"{user.get('first_name', '')} {user.get('last_name', '')}".strip()
+            blog.pop("user_profiles", None)
+
+        return JsonResponse(blogs, safe=False, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+# ======================== CREAR BLOGS ========================
+@csrf_exempt
+def api_create_blog_admin(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        user_role = payload.get('rol')
+        data = json.loads(request.body)
+
+        required_fields = ['user_id', 'titulo', 'contenido']
+        if not all(field in data for field in required_fields):
+            return JsonResponse({'error': 'Faltan campos requeridos'}, status=400)
+
+        if user_role != 'admin':
+            data['aprobado'] = False  # Forzar aprobación manual si no es admin
+
+        result = supabase.table("blogs").insert(data).execute()
+        return JsonResponse({'message': 'Blog creado', 'data': result.data}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+# ======================== MODIFICAR BLOGS ========================
+@csrf_exempt
+def api_update_blog_admin(request):
+    if request.method != 'PUT':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        data = json.loads(request.body)
+        blog_id = data.get('id')
+        if not blog_id:
+            return JsonResponse({'error': 'Falta el ID del blog'}, status=400)
+
+        update_fields = {k: v for k, v in data.items() if k != 'id'}
+        result = supabase.table("blogs").update(update_fields).eq("id", blog_id).execute()
+
+        return JsonResponse({'message': 'Blog actualizado', 'data': result.data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+# ======================== ELIMINAR BLOGS ========================
+
+@csrf_exempt
+def api_delete_blog_admin(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        data = json.loads(request.body)
+        blog_id = data.get('id')
+        if not blog_id:
+            return JsonResponse({'error': 'Falta el ID del blog'}, status=400)
+
+        result = supabase.table("blogs").delete().eq("id", blog_id).execute()
+        return JsonResponse({'message': 'Blog eliminado', 'data': result.data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

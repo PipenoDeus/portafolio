@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../context/AuthContext'; // Asegúrate de que estás importando el contexto correctamente
+import { useAuth } from '../context/AuthContext'; 
 
 const Blogs = () => {
-  const { user } = useAuth();  // Obtén el usuario logueado desde el contexto
+  const { user } = useAuth();  
   const [blogs, setBlogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -40,7 +40,7 @@ const Blogs = () => {
   const newBlog = {
     titulo: titulo,
     contenido: contenido,
-    user_id: user.id,  // Aquí es donde usamos el ID del usuario logueado
+    user_id: user.id,
   };
 
   try {
