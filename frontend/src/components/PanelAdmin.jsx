@@ -21,6 +21,10 @@ const PanelAdmin = () => {
   const [editClase, setEditClase] = useState(null);
   const [blogs, setBlogs] = useState([]);
   const [editBlog, setEditBlog] = useState(null);
+  const [rings, setRings] = useState([]);
+  const [editRing, setEditRing] = useState(null);
+  const [newRing, setNewRing] = useState({nombre: '',descripcion: '',estado: '',gimnasio_id: ''});
+  const [showCreateRingModal, setShowCreateRingModal] = useState(false);
   
 
   useEffect(() => {
@@ -54,6 +58,7 @@ const PanelAdmin = () => {
         fetchReservas(token); 
         fetchClases(token);
         fetchBlogs(token);
+        fetchRings(token);
       } else {
         navigate('/');
       }
@@ -335,6 +340,125 @@ const fetchRutinas = async (token) => {
     console.error('Error al obtener rutinas:', err);
   }
 };
+
+const fetchRings = async (token) => {
+  try {
+    const response = await fetch('http://localhost:8000/api/rings/listar/', {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (response.ok) {
+      const data = await response.json();
+      setRings(data);
+    } else {
+      console.error('Error al listar rings');
+    }
+  } catch (error) {
+    console.error('Error al obtener rings:', error);
+  }
+};
+
+const handleCreateRing = async () => {
+  const token = localStorage.getItem('token');
+
+  try {
+    const response = await fetch('http://localhost:8000/api/rings/crear/', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(newRing),
+    });
+
+    const responseData = await response.json();
+
+    if (response.ok) {
+      alert("Ring creado exitosamente.");
+      setNewRing({ nombre: '', descripcion: '', estado: '', gimnasio_id: '' });
+      fetchRings(token);
+    } else {
+      console.error('Error al crear ring:', responseData);
+      alert('Error al crear ring. Revisa la consola.');
+    }
+  } catch (error) {
+    console.error('Error de red al crear ring:', error);
+    alert('Error de red. Revisa la consola.');
+  }
+};
+
+const handleUpdateRing = async () => {
+  const token = localStorage.getItem('token');
+  try {
+    const response = await fetch('http://localhost:8000/api/rings/actualizar/', {
+      method: 'PUT',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        id: editRing.id,
+        nombre: editRing.nombre,
+        descripcion: editRing.descripcion,
+        estado: editRing.estado,
+        gimnasio_id: editRing.gimnasio_id,
+      }),
+    });
+
+    if (response.ok) {
+      alert("Ring actualizado correctamente.");
+      setEditRing(null);
+      fetchRings(token);
+    } else {
+      const errorData = await response.json();
+      console.error('Error al actualizar ring:', errorData);
+      alert('Error al actualizar ring');
+    }
+  } catch (error) {
+    console.error('Error al actualizar ring:', error);
+  }
+};
+
+const handleDeleteRing = async (id) => {
+  const token = localStorage.getItem('token');
+  const confirmDelete = window.confirm('¿Eliminar este ring?');
+  if (!confirmDelete) return;
+
+  try {
+    const response = await fetch('http://localhost:8000/api/rings/eliminar/', {
+      method: 'DELETE',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id }),
+    });
+
+    if (response.ok) {
+      alert("Ring eliminado correctamente.");
+      fetchRings(token);
+    } else {
+      const errorData = await response.json();
+      console.error('Error al eliminar ring:', errorData);
+      alert(`Error al eliminar ring: ${errorData.detail || 'Error desconocido'}`);
+    }
+  } catch (error) {
+    console.error('Error de red al eliminar ring:', error);
+  }
+};
+
+const handleRingImageUpload = (e) => {
+  const file = e.target.files[0];
+  const reader = new FileReader();
+  reader.onloadend = () => {
+    setNewRing((prev) => ({ ...prev, imagen_url: reader.result }));
+  };
+  if (file) {
+    reader.readAsDataURL(file);
+  }
+};
+
 
 
 const handleUpdateRutina = async () => {
@@ -1035,6 +1159,192 @@ const handleDeleteBlog = async (id) => {
               </tbody>
             </table>
           </div>
+          <h2 style={{ textAlign: 'center', marginTop: '40px' }}>Rings</h2>
+            <div
+              style={{
+                maxHeight: '500px',
+                overflowY: 'auto',
+                border: '1px solid #ccc',
+                borderRadius: '8px',
+                padding: '20px',
+                boxShadow: '0 0 10px rgba(0,0,0,0.1)',
+                marginBottom: '40px',
+              }}
+            >
+              <div
+                style={{
+                  margin: '20px 0',
+                  display: 'flex',
+                  gap: '10px',
+                  flexWrap: 'wrap',
+                  justifyContent: 'center',
+                }}
+              >
+                <button onClick={() => setShowCreateRingModal(true)} style={btnStyle}>
+                  Crear Ring
+                </button>
+
+                {showCreateRingModal && (
+                  <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+                    justifyContent: 'center', alignItems: 'center', zIndex: 1000,
+                  }}>
+                    <div style={{
+                      background: 'white', padding: '20px', borderRadius: '10px',
+                      width: '400px', maxHeight: '90%', overflowY: 'auto',
+                    }}>
+                      <h3>Crear Nuevo Ring</h3>
+                      <input
+                        placeholder="Nombre"
+                        value={newRing.nombre}
+                        onChange={(e) => setNewRing({ ...newRing, nombre: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        placeholder="Descripción"
+                        value={newRing.descripcion}
+                        onChange={(e) => setNewRing({ ...newRing, descripcion: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        placeholder="Estado"
+                        value={newRing.estado}
+                        onChange={(e) => setNewRing({ ...newRing, estado: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        placeholder="ID del Gimnasio"
+                        value={newRing.gimnasio_id}
+                        onChange={(e) => setNewRing({ ...newRing, gimnasio_id: e.target.value })}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleRingImageUpload}
+                        style={{ width: '100%', marginBottom: '10px' }}
+                      />
+                      <button
+                        onClick={handleCreateRing}
+                        style={{
+                          ...btnStyle,
+                          backgroundColor: newRing.imagen_url ? btnStyle.backgroundColor : '#ccc',
+                          cursor: newRing.imagen_url ? 'pointer' : 'not-allowed',
+                        }}
+                        disabled={!newRing.imagen_url}
+                      >
+                        Guardar
+                      </button>
+                      <button
+                        onClick={() => setShowCreateRingModal(false)}
+                        style={{ ...btnStyle, backgroundColor: '#ccc', marginLeft: '10px' }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr>
+                    <th style={thStyle}>Imagen</th>
+                    <th style={thStyle}>Nombre</th>
+                    <th style={thStyle}>Descripción</th>
+                    <th style={thStyle}>Estado</th>
+                    <th style={thStyle}>Gimnasio</th>
+                    <th style={thStyle}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rings.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" style={tdStyle}>No hay rings</td>
+                    </tr>
+                  ) : (
+                    rings.map((ring, index) => (
+                      <tr key={index}>
+                        <td style={tdStyle}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <img
+                              src={ring.gimnasio_imagen_url}
+                              alt="gimnasio"
+                              style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '8px',
+                                objectFit: 'cover',
+                              }}
+                            />
+                            <span>{ring.gimnasio_nombre}</span>
+                          </div>
+                        </td>
+                        <td style={tdStyle}>{ring.nombre}</td>
+                        <td style={tdStyle}>{ring.descripcion}</td>
+                        <td style={tdStyle}>{ring.estado}</td>
+                        <td style={tdStyle}>{ring.gimnasio_nombre}</td>
+                        <td style={tdStyle}>
+                          <button onClick={() => setEditRing(ring)} style={btnStyle}>Editar</button>
+                          {editRing && (
+                            <div style={{
+                              position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                              backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex',
+                              justifyContent: 'center', alignItems: 'center', zIndex: 1000,
+                            }}>
+                              <div style={{
+                                background: 'white', padding: '20px', borderRadius: '10px',
+                                width: '400px', maxHeight: '90%', overflowY: 'auto',
+                              }}>
+                                <h3>Editar Ring</h3>
+                                <input
+                                  placeholder="Nombre"
+                                  value={editRing.nombre || ''}
+                                  onChange={(e) => setEditRing({ ...editRing, nombre: e.target.value })}
+                                  style={{ width: '100%', marginBottom: '10px' }}
+                                />
+                                <input
+                                  placeholder="Descripción"
+                                  value={editRing.descripcion || ''}
+                                  onChange={(e) => setEditRing({ ...editRing, descripcion: e.target.value })}
+                                  style={{ width: '100%', marginBottom: '10px' }}
+                                />
+                                <input
+                                  placeholder="Estado"
+                                  value={editRing.estado || ''}
+                                  onChange={(e) => setEditRing({ ...editRing, estado: e.target.value })}
+                                  style={{ width: '100%', marginBottom: '10px' }}
+                                />
+                                <input
+                                  placeholder="Gimnasio"
+                                  value={editRing.gimnasio_nombre || ''}
+                                  disabled
+                                  style={{ width: '100%', marginBottom: '10px', backgroundColor: '#eee' }}
+                                />
+                                <button onClick={handleUpdateRing} style={btnStyle}>Guardar</button>
+                                <button
+                                  onClick={() => setEditRing(null)}
+                                  style={{ ...btnStyle, backgroundColor: '#ccc', marginLeft: '10px' }}
+                                >
+                                  Cancelar
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => handleDeleteRing(ring.id)}
+                            style={{ ...btnStyle, backgroundColor: '#e74c3c', marginLeft: '10px' }}
+                          >
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           <h2 style={{ textAlign: 'center' }}>Rutinas</h2>
             <div
               style={{

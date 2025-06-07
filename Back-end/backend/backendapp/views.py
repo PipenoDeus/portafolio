@@ -1366,3 +1366,120 @@ def api_delete_blog_admin(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+# ======================== LISTAR RINGS ========================
+def api_list_rings_admin(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        # Obtener todos los rings
+        rings_result = supabase.table("rings").select(
+            "id, nombre, descripcion, estado, gimnasio_id"
+        ).execute()
+        rings = rings_result.data
+
+        # Obtener todos los gimnasios
+        gyms_result = supabase.table("gimnasios").select("id, nombre, imagen_url").execute()
+        gimnasios = gyms_result.data
+        gimnasio_dict = {gym["id"]: gym for gym in gimnasios}
+
+        # Agregar nombre e imagen del gimnasio a cada ring
+        for ring in rings:
+            gym = gimnasio_dict.get(ring["gimnasio_id"])
+            if gym:
+                ring["gimnasio_nombre"] = gym["nombre"]
+                ring["gimnasio_imagen_url"] = gym["imagen_url"]
+            else:
+                ring["gimnasio_nombre"] = "Desconocido"
+                ring["gimnasio_imagen_url"] = ""
+
+        return JsonResponse(rings, safe=False, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== CREAR RINGS ========================
+@csrf_exempt
+def api_create_ring_admin(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        data = json.loads(request.body)
+        required_fields = ['nombre', 'descripcion', 'estado', 'gimnasio_id']
+        if not all(field in data for field in required_fields):
+            return JsonResponse({'error': 'Faltan campos requeridos'}, status=400)
+
+        result = supabase.table("rings").insert(data).execute()
+        return JsonResponse({'message': 'Ring creado', 'data': result.data}, status=201)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== MODIFICAR RINGS ========================
+@csrf_exempt
+def api_update_ring_admin(request):
+    if request.method != 'PUT':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        data = json.loads(request.body)
+        ring_id = data.get('id')
+        if not ring_id:
+            return JsonResponse({'error': 'Falta el ID del ring'}, status=400)
+
+        update_fields = {k: v for k, v in data.items() if k != 'id'}
+        result = supabase.table("rings").update(update_fields).eq("id", ring_id).execute()
+
+        return JsonResponse({'message': 'Ring actualizado', 'data': result.data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== ELIMINAR RINGS ========================
+@csrf_exempt
+def api_delete_ring_admin(request):
+    if request.method != 'DELETE':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        data = json.loads(request.body)
+        ring_id = data.get('id')
+        if not ring_id:
+            return JsonResponse({'error': 'Falta el ID del ring'}, status=400)
+
+        result = supabase.table("rings").delete().eq("id", ring_id).execute()
+        return JsonResponse({'message': 'Ring eliminado', 'data': result.data}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
