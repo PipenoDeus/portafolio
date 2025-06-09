@@ -48,7 +48,7 @@ const Profile = () => {
     }
 
     const data = await response.json();
-    console.log('Respuesta de la API de pago:', data);
+
 
     if (data.redirect_url) {
       window.location.href = data.redirect_url;
@@ -63,26 +63,54 @@ const Profile = () => {
 
   const [showDeleteWarning, setShowDeleteWarning] = useState(false); 
 
-  useEffect(() => {
-    if (!user) {
-      console.log('Usuario no autenticado, redirigiendo...');
+useEffect(() => {
+  const fetchUserData = async () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+
       navigate('/sesion');
-    } else {
-      console.log('Usuario autenticado:', user);
-      setAvatarUrl(user.avatar_url);
-      setFormData({
-        first_name: user.first_name || '',
-        last_name: user.last_name || '',
-        number: user.number || '',
-        city: user.city || '',
-        birthdate: user.birthdate || '',
-        email: user.email || '',
-        created_at: user.created_at || '',
-        membresy: user.membresy || false,
-        rol: user.rol || ''
-      });
+      return;
     }
-  }, [user, navigate]);
+
+    try {
+      const response = await fetch('http://localhost:8000/api/get-user-data/', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        console.error('Error al obtener datos del usuario');
+        navigate('/sesion');
+        return;
+      }
+      
+
+      const userData = await response.json();
+
+
+      updateUser(userData); 
+
+      setAvatarUrl(userData.avatar_url || '');
+      setFormData({
+        first_name: userData.first_name || '',
+        last_name: userData.last_name || '',
+        number: userData.number || '',
+        city: userData.city || '',
+        birthdate: userData.birthdate || '',
+        email: userData.email || '',
+        created_at: userData.created_at || '',
+        membresy: userData.membresy || false,
+        rol: userData.rol || ''
+      });
+    } catch (err) {
+      console.error('❌ Error al hacer fetch de datos del usuario:', err);
+      navigate('/sesion');
+    }
+  };
+
+  fetchUserData();
+}, []);
 
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
@@ -114,7 +142,7 @@ const Profile = () => {
     }
 
     const newAvatarUrl = publicUrlData.publicUrl;
-    console.log('URL pública del avatar:', newAvatarUrl);
+
 
     const { error: updateError, status } = await supabase
       .from('user_profiles')
@@ -139,9 +167,8 @@ const Profile = () => {
       return;
     }
 
-    console.log('Perfil actualizado:', updatedProfile);
     setAvatarUrl(updatedProfile.avatar_url);
-    console.log('Llamando a updateUser con:', { ...user, ...updatedProfile });
+
     updateUser({ ...user, ...updatedProfile });
 
     alert('Imagen de perfil actualizada');
@@ -155,7 +182,6 @@ const Profile = () => {
   };
 
   const handleSave = async () => {
-  console.log('Guardando cambios para el perfil:', formData);
 
 
   const { error: updateError, status } = await supabase
@@ -189,7 +215,7 @@ const Profile = () => {
     return;
   }
 
-  console.log('Perfil actualizado:', updatedProfile);
+
 
   updateUser({ ...user, ...updatedProfile });
 
@@ -209,7 +235,6 @@ const Profile = () => {
       return;
     }
 
-    console.log('🗑️ Eliminando cuenta para el email:', user.email);
 
     const response = await fetch('http://localhost:8000/api/delete_user/', {
       method: 'DELETE',
@@ -221,7 +246,6 @@ const Profile = () => {
     });
 
     if (response.ok) {
-      console.log('✅ Cuenta eliminada correctamente');
       logout();  
       window.location.replace('/');
     } else {

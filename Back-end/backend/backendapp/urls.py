@@ -1,8 +1,7 @@
 from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
-from .views import api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs,api_create_rutina,api_get_rutinas,api_update_user,api_delete_user,api_get_role,api_list_users,admin_update_user,api_verify_token,admin_delete_user,api_create_gimnasio,api_list_gimnasios,api_update_gimnasio,api_delete_gimnasio,api_update_rutina,api_delete_rutina,api_listar_reservas,api_modificar_reserva,api_eliminar_reserva,crear_pago,pago_exitoso,start_payment_process,generate_transaction_token,complete_payment,api_create_clase,api_delete_clase,api_list_clases,api_update_clase,api_create_blog_admin,api_delete_blog_admin,api_list_blogs_admin,api_update_blog_admin,api_create_ring_admin,api_delete_ring_admin,api_list_rings_admin,api_update_ring_admin
-
+from .views import api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs,api_create_rutina,api_get_rutinas,api_update_user,api_delete_user,api_get_user_data,api_list_users,admin_update_user,api_verify_token,admin_delete_user,api_create_gimnasio,api_list_gimnasios,api_update_gimnasio,api_delete_gimnasio,api_update_rutina,api_delete_rutina,api_listar_reservas,api_modificar_reserva,api_eliminar_reserva,crear_pago,pago_exitoso,start_payment_process,generate_transaction_token,complete_payment,api_create_clase,api_delete_clase,api_list_clases,api_update_clase,api_create_blog_admin,api_delete_blog_admin,api_list_blogs_admin,api_update_blog_admin,api_create_ring_admin,api_delete_ring_admin,api_list_rings_admin,api_update_ring_admin,upload_image_gym,upload_image_rings
 router = DefaultRouter()
 
 
@@ -21,7 +20,7 @@ urlpatterns = [
     path('api/blogs/', api_get_blogs, name='api_get_blogs'),
     path('api/create_rutina', api_create_rutina, name='api_create_rutina'),
     path('api/get_rutina', api_get_rutinas, name='api_get_rutina'),
-    path('api/get-role/', api_get_role, name='api_get_role'),
+    path('api/get-user-data/', api_get_user_data, name='api_get_user_data'),
     path('api/verify_token/', api_verify_token, name='verify_token'),
     path('api/users/',api_list_users, name='api_list_users'),
     path('api/admin-update-user/', admin_update_user, name='admin_update_user'),
@@ -30,6 +29,7 @@ urlpatterns = [
     path('api/gimnasios/crear/', api_create_gimnasio, name='crear_gimnasio'),
     path('api/gimnasios/actualizar/', api_update_gimnasio, name='actualizar_gimnasio'),
     path('api/gimnasios/eliminar/', api_delete_gimnasio, name='eliminar_gimnasio'),
+    path('api/upload_image_gym/', upload_image_gym, name='upload_image_gym'),
     path('api/update_rutina', api_update_rutina, name='api_update_rutina'),
     path('api/delete_rutina', api_delete_rutina, name='api_delete_rutina'),
     path('api/crear-pago/', crear_pago, name='crear_pago'),
@@ -49,4 +49,5 @@ urlpatterns = [
     path('api/rings/crear/', api_create_ring_admin, name='api_create_ring'),
     path('api/rings/actualizar/', api_update_ring_admin, name='api_update_ring'),
     path('api/rings/eliminar/', api_delete_ring_admin, name='api_delete_ring'),
+    path('api/upload_image_rings/', upload_image_rings, name='upload_image_rings'),
 ]

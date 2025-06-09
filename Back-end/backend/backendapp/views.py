@@ -13,6 +13,7 @@ import json
 import bcrypt
 import jwt
 import uuid
+import os
 from uuid import UUID
 
 # ======================== PAYPAL  ========================
@@ -234,12 +235,11 @@ def api_login(request):
                 'rol': user['rol'],
                 'exp': datetime.utcnow() + timedelta(hours=4),
                 'iat': datetime.utcnow()
-                }
+            }
 
             token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm='HS256')
 
-            user.pop('password', None)
-            return JsonResponse({'token': token, 'user': user}, status=200)
+            return JsonResponse({'token': token}, status=200)
 
         return JsonResponse({'error': 'Credenciales inválidas'}, status=401)
 
@@ -402,26 +402,40 @@ def api_delete_user(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# ======================== OBTENER ROL ========================
+# ======================== OBTENER USUARIO ========================
 @csrf_exempt
-def api_get_role(request):
-    if request.method != 'POST':
+def api_get_user_data(request):
+    if request.method != 'GET':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    try:
-        body = json.loads(request.body)
-        email = body.get('email')
-        if not email:
-            return JsonResponse({'error': 'El correo electrónico es obligatorio'}, status=400)
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
 
-        result = supabase.table("user_profiles").select("rol").eq("email", email).single().execute()
+    token = auth_header.split(' ')[1]
+
+    try:
+        decoded_token = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        email = decoded_token.get('email')
+
+        if not email:
+            return JsonResponse({'error': 'Email no encontrado en el token'}, status=400)
+
+        fields = "id, email, number, first_name, last_name, city, created_at, avatar_url, membresy, birthdate, rol"
+        result = supabase.table("user_profiles").select(fields).eq("email", email).single().execute()
 
         if result.data:
-            return JsonResponse({'rol': result.data['rol']}, status=200)
+            return JsonResponse(result.data, status=200)
+
         return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
     
 
 # ======================== OBTENER GIMNASIOS ========================
@@ -1136,6 +1150,56 @@ def api_delete_gimnasio(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+# ======================== SUBIR IMAGEN A GYM =========================
+
+@csrf_exempt
+def upload_image_gym(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        print(f"Archivos recibidos en request.FILES: {request.FILES}")
+
+        if not request.FILES or 'file' not in request.FILES:
+            return JsonResponse({'error': 'No se recibió archivo'}, status=400)
+
+        file = request.FILES['file']
+        print(f"Archivo recibido: {file.name}")
+
+        if file.size == 0:
+            return JsonResponse({'error': 'El archivo está vacío'}, status=400)
+
+        extension = '.' + file.name.split('.')[-1] if '.' in file.name else ''
+        filename = f"{int(datetime.now().timestamp())}{extension}"
+        file_path = f"gimnasios/{filename}"
+
+        print(f"Subiendo archivo con el nombre: {filename} al bucket: {file_path}")
+
+        response = supabase.storage.from_('gimnasios').upload(
+            file_path, file.read(), {"content-type": file.content_type}
+        )
+        print(f"Respuesta de Supabase: {response}")
+
+        if getattr(response, 'error', None):
+            return JsonResponse({
+                'error': 'Error al subir imagen',
+                'details': str(response.error)
+            }, status=500)
+
+        public_url = supabase.storage.from_('gimnasios').get_public_url(file_path)
+        print(f"Respuesta para obtener URL pública: {public_url}")
+
+        if not public_url:
+            return JsonResponse({'error': 'No se pudo obtener la URL pública'}, status=500)
+
+        return JsonResponse({'public_url': public_url}, status=200)
+
+    except Exception as e:
+        print(f"Error en el proceso: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+    
 
 # ======================== LISTAR CLASES =========================
 @csrf_exempt
@@ -1482,4 +1546,60 @@ def api_delete_ring_admin(request):
         return JsonResponse({'message': 'Ring eliminado', 'data': result.data}, status=200)
 
     except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+# ======================== SUBIR IMAGEN A RINGS ========================= 
+
+@csrf_exempt
+def upload_image_rings(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        print(f"Archivos recibidos en request.FILES: {request.FILES}")
+
+        if not request.FILES or 'file' not in request.FILES:
+            return JsonResponse({'error': 'No se recibió archivo'}, status=400)
+
+        file = request.FILES['file']
+        print(f"Archivo recibido: {file.name}")
+
+        if file.size == 0:
+            return JsonResponse({'error': 'El archivo está vacío'}, status=400)
+
+        extension = '.' + file.name.split('.')[-1] if '.' in file.name else ''
+        filename = f"{int(datetime.now().timestamp())}{extension}"
+        file_path = f"rings/{filename}"
+
+        print(f"Subiendo archivo con el nombre: {filename} al bucket: {file_path}")
+
+        response = supabase.storage.from_('rings').upload(
+            file_path, file.read(), {"content-type": file.content_type}
+        )
+        print(f"Respuesta de Supabase: {response}")
+
+        if getattr(response, 'error', None):
+            return JsonResponse({
+                'error': 'Error al subir imagen',
+                'details': str(response.error)
+            }, status=500)
+
+        public_url_data = supabase.storage.from_('rings').get_public_url(file_path)
+        print(f"Respuesta para obtener URL pública: {public_url_data}")
+
+        public_url = None
+        if hasattr(public_url_data, 'model_dump'):
+            public_url = public_url_data.model_dump().get('public_url') or public_url_data.model_dump().get('publicUrl')
+        elif isinstance(public_url_data, dict):
+            public_url = public_url_data.get('public_url') or public_url_data.get('publicUrl')
+        elif isinstance(public_url_data, str):  # fallback por si es URL directa
+            public_url = public_url_data
+
+        if not public_url:
+            return JsonResponse({'error': 'No se pudo obtener la URL pública'}, status=500)
+
+        return JsonResponse({'public_url': public_url}, status=200)
+
+    except Exception as e:
+        print(f"Error en el proceso: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)

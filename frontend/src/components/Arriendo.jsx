@@ -4,7 +4,6 @@ import supabase from '../connection/supabaseClient';
 
 const Reservas = () => {
   const { user, token } = useAuth();
-  console.log("Token:", token);
   const [rings, setRings] = useState([]);
   const [selectedRing, setSelectedRing] = useState('');
   const [fecha, setFecha] = useState('');
@@ -26,26 +25,34 @@ const Reservas = () => {
     }
   };
 
-  const fetchBoxerProfile = async () => {
-  if (!user || !user.id) return;
+  const fetchUserData = async () => {
+  try {
+    const response = await fetch('http://localhost:8000/api/get-user-data/', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    });
 
-  const { data, error } = await supabase
-    .from('user_profiles') 
-    .select('id')
-    .eq('id', user.id) 
-    .single();
+    if (!response.ok) {
+      throw new Error('No se pudo obtener la información del usuario');
+    }
 
-  if (error) {
-    console.error('Error al obtener el perfil del boxeador:', error.message);
-    setErrorMessage('Error al obtener el perfil del boxeador');
-  } else if (data) {
-    setBoxerId(data.id);
+    const userData = await response.json();
+
+
+    // Asumimos que `userData.id` es el boxer_id necesario
+    setBoxerId(userData.id); 
+  } catch (error) {
+    console.error('Error al obtener los datos del usuario:', error.message);
+    setErrorMessage('Error al obtener los datos del usuario');
   }
 };
 
   useEffect(() => {
     if (user) {
-      fetchBoxerProfile();
+      fetchUserData();
       fetchRings();
     }
   }, [user]);
@@ -85,7 +92,7 @@ const Reservas = () => {
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
-    console.log("Headers enviados:", headers);
+
 
     const response = await fetch('http://localhost:8000/api/reserva_ring', {
       method: 'POST',

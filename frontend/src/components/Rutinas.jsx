@@ -13,13 +13,8 @@ const Rutinas = () => {
   const token = localStorage.getItem('token');
   const { user, role } = useAuth();
 
-  console.log('🔐 Usuario:', user);
-  console.log('🔑 Token:', token);
-  console.log('🎭 Rol:', role);
-
   const fetchRutinas = async () => {
     try {
-      console.log('📡 Solicitando rutinas...');
 
       const response = await fetch('http://localhost:8000/api/get_rutina', {
         method: 'GET',
@@ -29,11 +24,10 @@ const Rutinas = () => {
       });
 
       const result = await response.json();
-      console.log('Respuesta de la API:', result);
 
       if (response.ok) {
         if (Array.isArray(result.data)) {
-          console.log('Rutinas recibidas correctamente:', result.data);
+
           setRutinas(result.data);
         } else {
           console.error('La propiedad "data" no es un array:', result.data);
@@ -64,8 +58,6 @@ const Rutinas = () => {
   const handleSubmit = e => {
     e.preventDefault();
 
-    console.log('📤 Enviando nueva rutina:', formData);
-
     if (!user?.id) {
       console.warn('❌ Usuario no válido para crear rutinas');
       setError('Usuario no válido para crear rutinas');
@@ -77,7 +69,6 @@ const Rutinas = () => {
       entrenador_id: user.id
     };
 
-    console.log('📦 Datos con entrenador:', dataConEntrenador);
 
     fetch('http://localhost:8000/api/create_rutina', {
       method: 'POST',
@@ -88,7 +79,6 @@ const Rutinas = () => {
       body: JSON.stringify(dataConEntrenador)
     })
       .then(response => {
-        console.log('📥 Respuesta de /create_rutina:', response.status);
         if (!response.ok) throw new Error('Error al crear rutina');
         return response.json();
       })

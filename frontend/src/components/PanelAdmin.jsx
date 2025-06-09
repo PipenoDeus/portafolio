@@ -74,8 +74,6 @@ const PanelAdmin = () => {
   checkAdmin();
 }, [navigate]);
 
-
-
   const fetchUsers = async (tokenParam = null) => {
     const token = tokenParam || localStorage.getItem('token');
     try {
@@ -222,43 +220,36 @@ const handleGymImageUpload = async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
-  const token = localStorage.getItem('token');
-  const fileExt = file.name.split('.').pop();
-  const fileName = `${Date.now()}.${fileExt}`;
-  const filePath = fileName;
+  const formData = new FormData();
+  formData.append('file', file);
 
-  const { error: uploadError } = await supabase.storage
-    .from('gimnasios')
-    .upload(filePath, file, { upsert: true });
+  try {
+    const response = await fetch('http://localhost:8000/api/upload_image_gym/', {
+      method: 'POST',
+      body: formData,
+    });
 
-  if (uploadError) {
-    console.error("Error al subir imagen:", uploadError);
-    alert('Error al subir la imagen');
-    return;
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Error desde el servidor:', data.error);
+      alert('Error al subir la imagen');
+      return;
+    }
+
+    const imageUrl = data.public_url;
+    console.log("Imagen subida, URL pública:", imageUrl);
+
+    setNewGym((prev) => {
+      const updated = { ...prev, imagen_url: imageUrl };
+      console.log("newGym actualizado:", updated);
+      return updated;
+    });
+  } catch (error) {
+    console.error('Error en la subida:', error);
+    alert('Error inesperado al subir la imagen');
   }
-
-  const { data: publicUrlData, error: publicUrlError } = await supabase
-    .storage
-    .from('gimnasios')
-    .getPublicUrl(filePath);
-
-  if (publicUrlError || !publicUrlData?.publicUrl) {
-    console.error("Error obteniendo URL pública:", publicUrlError);
-    alert('No se pudo obtener la URL pública');
-    return;
-  }
-
-  const imageUrl = publicUrlData.publicUrl;
-
-  console.log("Imagen subida, URL pública:", imageUrl);
-
-  setNewGym((prev) => {
-    const updated = { ...prev, imagen_url: imageUrl };
-    console.log("newGym actualizado:", updated);
-    return updated;
-  });
 };
-
 
 const handleUpdateGym = async () => {
   const token = localStorage.getItem('token');
@@ -291,7 +282,6 @@ const handleUpdateGym = async () => {
     console.error('Error:', error);
   }
 };
-
 
 const handleDeleteGym = async (id) => {
   const token = localStorage.getItem('token');
@@ -376,8 +366,21 @@ const handleCreateRing = async () => {
 
     if (response.ok) {
       alert("Ring creado exitosamente.");
-      setNewRing({ nombre: '', descripcion: '', estado: '', gimnasio_id: '' });
-      fetchRings(token);
+      
+      // Accedemos al primer elemento de 'data' en la respuesta
+      const createdRing = responseData.data[0]; 
+      console.log('Ring creado:', createdRing);
+
+      // Actualizamos el estado con la información del nuevo ring creado
+      setNewRing({
+        nombre: createdRing.nombre,
+        descripcion: createdRing.descripcion,
+        estado: createdRing.estado,
+        gimnasio_id: createdRing.gimnasio_id,
+        imagen_url: createdRing.imagen_url, // Si la imagen fue subida exitosamente
+      });
+
+      fetchRings(token);  // Si necesitas obtener el listado de rings después de crear uno
     } else {
       console.error('Error al crear ring:', responseData);
       alert('Error al crear ring. Revisa la consola.');
@@ -387,6 +390,7 @@ const handleCreateRing = async () => {
     alert('Error de red. Revisa la consola.');
   }
 };
+
 
 const handleUpdateRing = async () => {
   const token = localStorage.getItem('token');
@@ -448,18 +452,40 @@ const handleDeleteRing = async (id) => {
   }
 };
 
-const handleRingImageUpload = (e) => {
+const handleRingImageUpload = async (e) => {
   const file = e.target.files[0];
-  const reader = new FileReader();
-  reader.onloadend = () => {
-    setNewRing((prev) => ({ ...prev, imagen_url: reader.result }));
-  };
-  if (file) {
-    reader.readAsDataURL(file);
+  if (!file) return;
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const response = await fetch('http://localhost:8000/api/upload_image_rings/', {
+      method: 'POST',
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error('Error desde el servidor:', data.error);
+      alert('Error al subir la imagen');
+      return;
+    }
+
+    const imageUrl = data.public_url;
+    console.log("Imagen subida, URL pública:", imageUrl);
+
+    setNewRing((prev) => {
+      const updated = { ...prev, imagen_url: imageUrl };
+      console.log("newRing actualizado:", updated);
+      return updated;
+    });
+  } catch (error) {
+    console.error('Error en la subida:', error);
+    alert('Error inesperado al subir la imagen');
   }
 };
-
-
 
 const handleUpdateRutina = async () => {
   const token = localStorage.getItem('token');
@@ -504,11 +530,8 @@ const handleUpdateRutina = async () => {
   }
 };
 
-
 const handleDeleteRutina = async (id) => {
   const token = localStorage.getItem('token');
-  
-
   try {
     const response = await fetch('http://localhost:8000/api/delete_rutina', {
       method: 'DELETE',
@@ -651,7 +674,6 @@ const handleDeleteClase = async (id) => {
     console.error('Error eliminando clase:', err);
   }
 };
-
 
 const handleUpdateClase = async () => {
   const token = localStorage.getItem('token');
@@ -1213,12 +1235,18 @@ const handleDeleteBlog = async (id) => {
                         onChange={(e) => setNewRing({ ...newRing, estado: e.target.value })}
                         style={{ width: '100%', marginBottom: '10px' }}
                       />
-                      <input
-                        placeholder="ID del Gimnasio"
+                      <select
                         value={newRing.gimnasio_id}
                         onChange={(e) => setNewRing({ ...newRing, gimnasio_id: e.target.value })}
                         style={{ width: '100%', marginBottom: '10px' }}
-                      />
+                      >
+                        <option value="">Selecciona un gimnasio</option>
+                        {gyms.map((gym) => (
+                          <option key={gym.id} value={gym.id}>
+                            {gym.nombre}
+                          </option>
+                        ))}
+                      </select>
                       <input
                         type="file"
                         accept="image/*"
