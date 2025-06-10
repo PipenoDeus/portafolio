@@ -297,6 +297,40 @@ def api_register(request):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+# ======================== OBTENER USUARIO ========================
+@csrf_exempt
+def api_get_user_data(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        decoded_token = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        email = decoded_token.get('email')
+
+        if not email:
+            return JsonResponse({'error': 'Email no encontrado en el token'}, status=400)
+
+        fields = "id, email, number, first_name, last_name, city, created_at, avatar_url, membresy, birthdate, rol"
+        result = supabase.table("user_profiles").select(fields).eq("email", email).single().execute()
+
+        if result.data:
+            return JsonResponse(result.data, status=200)
+
+        return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 # ======================== ACTUALIZACION USUARIO ========================
@@ -402,39 +436,7 @@ def api_delete_user(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# ======================== OBTENER USUARIO ========================
-@csrf_exempt
-def api_get_user_data(request):
-    if request.method != 'GET':
-        return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    auth_header = request.headers.get('Authorization')
-    if not auth_header or not auth_header.startswith('Bearer '):
-        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
-
-    token = auth_header.split(' ')[1]
-
-    try:
-        decoded_token = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
-        email = decoded_token.get('email')
-
-        if not email:
-            return JsonResponse({'error': 'Email no encontrado en el token'}, status=400)
-
-        fields = "id, email, number, first_name, last_name, city, created_at, avatar_url, membresy, birthdate, rol"
-        result = supabase.table("user_profiles").select(fields).eq("email", email).single().execute()
-
-        if result.data:
-            return JsonResponse(result.data, status=200)
-
-        return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
-
-    except jwt.ExpiredSignatureError:
-        return JsonResponse({'error': 'Token expirado'}, status=401)
-    except jwt.InvalidTokenError:
-        return JsonResponse({'error': 'Token inválido'}, status=401)
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=500)
 
     
 
@@ -1602,4 +1604,109 @@ def upload_image_rings(request):
 
     except Exception as e:
         print(f"Error en el proceso: {str(e)}")
+        return JsonResponse({'error': str(e)}, status=500)
+
+# ======================== SUBIR IMAGEN A PERFIL ========================= 
+
+@csrf_exempt
+def upload_profile_avatar(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    try:
+        # 1. Obtener y validar token JWT desde headers
+        auth_header = request.headers.get('Authorization')
+        if not auth_header or not auth_header.startswith('Bearer '):
+            return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+        token = auth_header.split(' ')[1]
+
+        try:
+            decoded_token = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+            user_id = decoded_token.get('user_id')
+            if not user_id:
+                return JsonResponse({'error': 'Token inválido'}, status=401)
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        # 2. Verificar archivo
+        if not request.FILES or 'file' not in request.FILES:
+            return JsonResponse({'error': 'No se recibió archivo'}, status=400)
+
+        file = request.FILES['file']
+        if file.size == 0:
+            return JsonResponse({'error': 'El archivo está vacío'}, status=400)
+
+        # 3. Subir a Supabase Storage
+        extension = '.' + file.name.split('.')[-1] if '.' in file.name else ''
+        filename = f"{int(datetime.now().timestamp())}{extension}"
+        file_path = f"avatars/{filename}"
+
+        response = supabase.storage.from_('avatars').upload(
+            file_path, file.read(), {"content-type": file.content_type}
+        )
+
+        if getattr(response, 'error', None):
+            return JsonResponse({'error': 'Error al subir imagen', 'details': str(response.error)}, status=500)
+
+        public_url_data = supabase.storage.from_('avatars').get_public_url(file_path)
+        public_url = None
+        if hasattr(public_url_data, 'model_dump'):
+            public_url = public_url_data.model_dump().get('public_url') or public_url_data.model_dump().get('publicUrl')
+        elif isinstance(public_url_data, dict):
+            public_url = public_url_data.get('public_url') or public_url_data.get('publicUrl')
+        elif isinstance(public_url_data, str):
+            public_url = public_url_data
+
+        if not public_url:
+            return JsonResponse({'error': 'No se pudo obtener la URL pública'}, status=500)
+
+        supabase.table('user_profiles').update({'avatar_url': public_url}).eq('id', user_id).execute()
+
+        return JsonResponse({'public_url': public_url}, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+# ======================== EDITAR PERFIL USUARIO ========================= 
+
+@csrf_exempt
+def api_update_user_profile(request):
+    if request.method != 'PUT':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    # Obtener token JWT
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        decoded = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        user_email = decoded.get('email')
+
+        if not user_email:
+            return JsonResponse({'error': 'Email no disponible en el token'}, status=400)
+
+        data = json.loads(request.body)
+
+        # Campos permitidos a editar
+        allowed_fields = ['email', 'first_name', 'last_name', 'number', 'city', 'birthdate']
+        update_fields = {k: v for k, v in data.items() if k in allowed_fields}
+
+        if not update_fields:
+            return JsonResponse({'error': 'No hay campos válidos para actualizar'}, status=400)
+
+        # Actualizar en Supabase
+        result = supabase.table("user_profiles").update(update_fields).eq("email", user_email).execute()
+
+        return JsonResponse({'message': 'Perfil actualizado', 'data': result.data}, status=200)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)

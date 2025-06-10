@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { jwtDecode } from 'jwt-decode';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { login } = useAuth();
-  
 
   const handleChange = (e) => {
     setFormData((prev) => ({
@@ -17,63 +17,55 @@ const Login = () => {
   };
 
   const handleSubmit = async (e) => {
-  e.preventDefault();
-  setError('');
+    e.preventDefault();
+    setError('');
 
-  console.log('📤 Enviando datos al backend:', formData);  
+    console.log('📤 Enviando datos al backend:', formData);
 
-  try {
-    const response = await fetch('http://localhost:8000/api/login/', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData),
-      credentials: 'include',
-    });
+    try {
+      const response = await fetch('http://localhost:8000/api/login/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+        credentials: 'include',
+      });
 
-    console.log('📥 Estado de respuesta HTTP:', response.status); 
+      console.log('📥 Estado de respuesta HTTP:', response.status);
 
-    const result = await response.json();
-    console.log('📥 Respuesta del backend:', result); 
+      const result = await response.json();
+      console.log('📥 Respuesta del backend:', result);
 
-    if (!response.ok) {
-      console.warn('⚠️ Error devuelto por el backend:', result.error);
-      setError(result.error || 'Error desconocido');
-      return;
-    }
+      if (!response.ok) {
+        console.warn('⚠️ Error devuelto por el backend:', result.error);
+        setError(result.error || 'Error desconocido');
+        return;
+      }
 
-    const { user, token } = result;
-    console.log('✅ Usuario recibido:', user);
+      const { token } = result;
+      const decoded = jwtDecode(token);
 
-    if (user && user.email && user.rol) {
-      localStorage.setItem('email', user.email);
-      localStorage.setItem('role', user.rol);
-      localStorage.setItem('token', token);
-      
+      if (decoded && decoded.email && decoded.rol) {
+        localStorage.setItem('email', decoded.email);
+        localStorage.setItem('role', decoded.rol);
+        localStorage.setItem('token', token);
 
-      console.log('💾 Email guardado en localStorage:', localStorage.getItem('email'));
-      console.log('💾 Rol guardado en localStorage:', localStorage.getItem('role'));
+        console.log('💾 Email guardado en localStorage:', decoded.email);
+        console.log('💾 Rol guardado en localStorage:', decoded.rol);
 
-      login(user, token); 
-
-      if (user.rol === 'admin') {
+        login({ email: decoded.email, rol: decoded.rol }, token);
         console.log('🔀 Redirigiendo a /');
         navigate('/');
       } else {
-        console.log('🔀 Redirigiendo a /');
-        navigate('/');
+        console.warn('⚠️ Token inválido o datos incompletos:', decoded);
+        setError('Datos del usuario incompletos');
       }
-    } else {
-      console.warn('⚠️ Usuario inválido o incompleto:', user);
-      setError('Datos del usuario incompletos');
+    } catch (err) {
+      console.error('❌ Error de red o servidor:', err);
+      setError('Error al conectar con el servidor');
     }
-  } catch (err) {
-    console.error('❌ Error de red o servidor:', err);
-    setError('Error al conectar con el servidor');
-  }
-};
-
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
