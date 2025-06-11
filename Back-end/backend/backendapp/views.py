@@ -4,6 +4,7 @@ from django.conf import settings
 from django.utils.deprecation import MiddlewareMixin
 from .paypal_config import paypalrestsdk
 from django.http import HttpResponseRedirect
+from django.shortcuts import render
 
 
 from .supabase_client import supabase
@@ -1703,6 +1704,56 @@ def api_update_user_profile(request):
         result = supabase.table("user_profiles").update(update_fields).eq("email", user_email).execute()
 
         return JsonResponse({'message': 'Perfil actualizado', 'data': result.data}, status=200)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
+# ======================== MOSTRAR RESERVAS GENERAL ========================= 
+def api_list_reservas_token(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        # user_id y rol se mantienen por si los necesitas en el futuro
+        user_id = payload.get('user_id')
+        rol = payload.get('rol')
+
+        # Obtener todas las reservas sin importar el rol
+        reservas_resp = supabase.table("reservas").select("*").execute()
+        reservas = reservas_resp.data
+
+        perfiles = supabase.table("user_profiles").select("id, email, first_name, last_name").execute().data
+        rings = supabase.table("rings").select("id, nombre").execute().data
+
+        for reserva in reservas:
+            boxeador = next((u for u in perfiles if u["id"] == reserva["boxer_id"]), None)
+            reserva["boxeador_nombre"] = f'{boxeador["first_name"]} {boxeador["last_name"]}' if boxeador else "Desconocido"
+            reserva["boxeador_email"] = boxeador["email"] if boxeador else "Desconocido"
+
+            reserva_email = (reserva.get("oponent_email") or "").strip().lower()
+            oponente = next(
+                (u for u in perfiles if (u.get("email") or "").strip().lower() == reserva_email),
+                None
+            )
+            reserva["oponente_nombre"] = f'{oponente["first_name"]} {oponente["last_name"]}' if oponente else "Desconocido"
+            reserva["oponente_email"] = oponente["email"] if oponente else reserva.get("oponent_email", "Sin email")
+
+            ring = next((r for r in rings if r["id"] == reserva["ring_id"]), None)
+            reserva["ring_nombre"] = ring["nombre"] if ring else "Desconocido"
+
+        return JsonResponse(reservas, safe=False, status=200)
 
     except jwt.ExpiredSignatureError:
         return JsonResponse({'error': 'Token expirado'}, status=401)

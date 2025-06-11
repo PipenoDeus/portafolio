@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import supabase from '../connection/supabaseClient';
+import { Link } from 'react-router-dom';
 
 const Reservas = () => {
   const { user, token } = useAuth();
@@ -215,7 +216,12 @@ const Reservas = () => {
             'Reservar'
           )}
         </button>
+        
+        
       </form>
+          <Link to="/Calendario" className="btn btn-secondary mt-3">
+          Ver Calendario
+        </Link>
     </div>
   );
 };

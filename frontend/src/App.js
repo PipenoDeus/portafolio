@@ -12,6 +12,7 @@ import Login from './components/login.jsx';
 import Home from './components/home.jsx';
 import Profile from './components/Profile.jsx';
 import Arriendo from './components/Arriendo.jsx';
+import Calendario from './components/Calendario.jsx';
 import Gimnasios from './components/Gimnasios.jsx';
 import Clases from './components/Clases.jsx';
 import AcercaDe from './components/acerca.jsx';
@@ -61,6 +62,8 @@ function App() {
             <Route path="/blog" element={<Blogs />} />
             <Route path="/rutinas" element={<Rutinas />} />
             <Route path="/PanelAdmin" element={<PanelAdmin />} />
+            <Route path="/Calendario" element={<Calendario />} />
+            
           </Route>
         </Routes>
       </main>
