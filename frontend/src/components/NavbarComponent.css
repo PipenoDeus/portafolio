@@ -1,0 +1,40 @@
+.navbar-black {
+  background-color: #000 !important;
+  border: 3px solid rgb(0, 0, 0);
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.navbar-black {
+  font-family:Verdana, Geneva, Tahoma, sans-serif;
+}
+
+.nav-link {
+  font-family: 'Raleway', sans-serif;
+  letter-spacing: 1px;
+  color: white;
+  transition: color 0.3s ease, background-color 0.3s ease;
+}
+
+.navbar-brand:hover,
+.nav-link:hover {
+  color: #FFD700; 
+  background-color: #222; 
+}
+
+.navbar-nav .nav-link {
+  margin-right: 5px;
+  margin-left: 5px; 
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0; 
+  }
+  to {
+    opacity: 1; 
+  }
+}
+
+.fade-in {
+  animation: fadeIn 2s ease-in-out;
+}

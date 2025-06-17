@@ -1,0 +1,28 @@
+.custom1 {
+  display: block;
+  background-color: #ffffff;
+  border-radius: 10px;
+  width: 100%;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.activity-card {
+  display: block;
+  padding: 20px;
+  border-radius: 0px;
+  color: white;
+  margin-top: 10px;
+  width:100%
+}
+
+.activity-row {
+  display: flex;
+  gap: 16px; 
+  margin-top: 10px;
+}
+
+.calls{
+    align-items: center;
+    font-size: 1000px;
+}
