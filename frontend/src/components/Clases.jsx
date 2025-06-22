@@ -42,7 +42,6 @@ const Clases = () => {
 
 const handleCreateClase = async (claseData) => {
   const token = localStorage.getItem('token');
-  console.log("Datos para crear clase:", claseData);
 
   if (!claseData.video_url) {
     alert("Debes subir un video antes de crear la clase.");
@@ -57,7 +56,6 @@ const handleCreateClase = async (claseData) => {
   };
 
   try {
-    console.log("Enviando payload al backend:", payload);
 
     const response = await fetch('http://localhost:8000/api/clases/crear/', {
       method: 'POST',
@@ -69,7 +67,6 @@ const handleCreateClase = async (claseData) => {
     });
 
     const responseData = await response.json();
-    console.log("Respuesta del backend:", responseData);
 
     if (response.ok) {
       alert("Clase creada exitosamente.");
@@ -88,7 +85,6 @@ const handleCreateClase = async (claseData) => {
 
 const handleArchivoChange = (e) => {
   const file = e.target.files[0];
-  console.log("Archivo seleccionado:", file);
   setNuevaClase((prev) => ({ ...prev, archivo: file }));
 };
 
@@ -103,7 +99,6 @@ const handleSubirClase = async () => {
   const fileName = `${Date.now()}.${fileExt}`;
   const filePath = fileName;
 
-  console.log("Subiendo archivo a Supabase:", filePath);
 
   const { error: uploadError } = await supabase.storage
     .from('clases-videos')
@@ -115,7 +110,7 @@ const handleSubirClase = async () => {
     return;
   }
 
-  console.log("Archivo subido correctamente. Obteniendo URL pública...");
+
 
   const { data: publicUrlData, error: publicUrlError } = await supabase
     .storage
@@ -129,7 +124,6 @@ const handleSubirClase = async () => {
   }
 
   const videoUrl = publicUrlData.publicUrl;
-  console.log("URL pública obtenida:", videoUrl);
 
   await handleCreateClase({
     ...nuevaClase,

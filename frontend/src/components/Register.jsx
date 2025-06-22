@@ -1,4 +1,26 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+
+import {
+  TextField,
+  Button,
+  Box,
+  Typography,
+  ThemeProvider,
+  MenuItem,
+  Select,
+  InputLabel,
+  FormControl
+} from '@mui/material';
+import theme from '../theme';
+
+const cities = [
+  { id: 'Villa Alemana', nombre: 'Villa Alemana' },
+  { id: 'Quilpué', nombre: 'Quilpué' },
+  { id: 'Viña del Mar', nombre: 'Viña del Mar' },
+  { id: 'Valparaíso', nombre: 'Valparaíso' },
+  { id: 'Concón', nombre: 'Concón' },
+];
 
 const Register = () => {
   const [formData, setFormData] = useState({
@@ -17,71 +39,167 @@ const Register = () => {
       [e.target.name]: e.target.value,
     }));
   };
+  
+const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
 
-    try {
-      const response = await fetch('http://localhost:8000/api/register/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-      const data = await response.json();
+  // Calcular edad
+  const birthDate = new Date(formData.birthdate);
+  const today = new Date();
+  const age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  const dayDiff = today.getDate() - birthDate.getDate();
 
-      if (response.ok) {
-        alert('¡Registro exitoso!');
-      } else {
-        alert('Error: ' + data.error);
-      }
-    } catch (err) {
-      console.error('Error al registrar', err);
-      alert('Ocurrió un error al registrar.');
+  const isTooYoung =
+    age < 14 ||
+    (age === 14 && (monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)));
+
+  if (isTooYoung) {
+    alert('Debes tener al menos 14 años para registrarte.');
+    return;
+  }
+
+  try {
+    const response = await fetch('http://localhost:8000/api/register/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      alert('¡Registro exitoso!');
+      navigate('/login');
+    } else {
+      alert('Error: ' + data.error);
     }
-  };
+  } catch (err) {
+    alert('Ocurrió un error al registrar.');
+  }
+};
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <main style={{ flex: 1 }}>
-        <div className="container mt-5 mb-5">
-          <h2 className="text-center mb-4" style={{ fontWeight: 'bold' }}>Registro</h2>
-          <form onSubmit={handleSubmit} className="mx-auto p-4 shadow rounded" style={{ maxWidth: '600px', backgroundColor: '#f9f9f9' }}>
-            <div className="mb-3">
-              <label className="form-label">Correo Electrónico</label>
-              <input type="email" className="form-control" name="email" value={formData.email} onChange={handleChange} required />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Contraseña</label>
-              <input type="password" className="form-control" name="password" value={formData.password} onChange={handleChange} required />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Nombre</label>
-              <input type="text" className="form-control" name="first_name" value={formData.first_name} onChange={handleChange} required />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Apellido</label>
-              <input type="text" className="form-control" name="last_name" value={formData.last_name} onChange={handleChange} required />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Número de Teléfono</label>
-              <input type="tel" className="form-control" name="number" value={formData.number} onChange={handleChange} required />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Ciudad</label>
-              <input type="text" className="form-control" name="city" value={formData.city} onChange={handleChange} required />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Fecha de Nacimiento</label>
-              <input type="date" className="form-control" name="birthdate" value={formData.birthdate} onChange={handleChange} required />
-            </div>
-            <button type="submit" className="btn btn-dark w-100">Registrarse</button>
-          </form>
-        </div>
-      </main>
-    </div>
+    <ThemeProvider theme={theme}>
+      <Box
+        component="form"
+        onSubmit={handleSubmit}
+        sx={{
+          maxWidth: 600,
+          mx: 'auto',
+          mt: 4,
+          backgroundColor: '#f9f9f9',
+          p: 4,
+          borderRadius: 2,
+          boxShadow: 3,
+        }}
+      >
+        <Typography variant="h5" gutterBottom align="center" fontWeight="bold">
+          Registro
+        </Typography>
+
+        <TextField
+          variant="standard"
+          fullWidth
+          label="Correo Electrónico"
+          name="email"
+          type="email"
+          value={formData.email}
+          onChange={handleChange}
+          margin="normal"
+          required
+        />
+
+        <TextField
+          variant="standard"
+          fullWidth
+          label="Contraseña"
+          name="password"
+          type="password"
+          value={formData.password}
+          onChange={handleChange}
+          margin="normal"
+          required
+        />
+
+        <TextField
+          variant="standard"
+          fullWidth
+          label="Nombre"
+          name="first_name"
+          value={formData.first_name}
+          onChange={handleChange}
+          margin="normal"
+          required
+        />
+
+        <TextField
+          variant="standard"
+          fullWidth
+          label="Apellido"
+          name="last_name"
+          value={formData.last_name}
+          onChange={handleChange}
+          margin="normal"
+          required
+        />
+
+        <TextField
+          variant="standard"
+          fullWidth
+          label="Número de Teléfono"
+          name="number"
+          type="tel"
+          value={formData.number}
+          onChange={handleChange}
+          margin="normal"
+          required
+        />
+
+        <FormControl fullWidth margin="normal" variant="standard" required>
+          <InputLabel>Ciudad</InputLabel>
+          <Select
+            name="city"
+            value={formData.city}
+            onChange={handleChange}
+            label="Ciudad"
+          >
+            {cities.map((c) => (
+              <MenuItem key={c.id} value={c.id}>
+                {c.nombre}
+              </MenuItem>
+            ))}
+          </Select>
+        </FormControl>
+
+        <TextField
+          variant="standard"
+          fullWidth
+          label="Fecha de Nacimiento"
+          name="birthdate"
+          type="date"
+          value={formData.birthdate}
+          onChange={handleChange}
+          margin="normal"
+          InputLabelProps={{ shrink: true }}
+          required
+        />
+
+        <Button
+          type="submit"
+          variant="contained"
+          color="primary"
+          sx={{ mt: 3, mx: 'auto', display: 'block' }}
+        >
+          Registrarse
+        </Button>
+      </Box>
+    </ThemeProvider>
   );
 };
 

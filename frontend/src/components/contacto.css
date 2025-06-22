@@ -1,0 +1,15 @@
+.custom1 {
+  padding: 2rem;
+}
+
+.activity-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.activity-card {
+  padding: 1rem;
+  color: white;
+  border-radius: 0.5rem;
+}

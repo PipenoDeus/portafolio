@@ -22,6 +22,8 @@ import PrivateLayout from './components/PrivateLayout';
 import NotFound from './components/NotFound';
 import Rutinas from './components/Rutinas.jsx';
 import PanelAdmin from './components/PanelAdmin.jsx';
+import Torneo from './components/Torneo.jsx';
+import TorneoCrear from './components/crear-torneo.jsx';
 
 function App() {
   return (
@@ -63,6 +65,8 @@ function App() {
             <Route path="/rutinas" element={<Rutinas />} />
             <Route path="/PanelAdmin" element={<PanelAdmin />} />
             <Route path="/Calendario" element={<Calendario />} />
+            <Route path="/torneo" element={<Torneo />} />
+            <Route path="/crear-torneo" element={<TorneoCrear />} />
             
           </Route>
         </Routes>

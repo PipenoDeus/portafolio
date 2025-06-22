@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { jwtDecode } from 'jwt-decode';
+import { Box, TextField, Button, Typography, Alert, ThemeProvider } from '@mui/material';
+import theme from '../theme';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
@@ -20,7 +22,6 @@ const Login = () => {
     e.preventDefault();
     setError('');
 
-    console.log('📤 Enviando datos al backend:', formData);
 
     try {
       const response = await fetch('http://localhost:8000/api/login/', {
@@ -32,10 +33,8 @@ const Login = () => {
         credentials: 'include',
       });
 
-      console.log('📥 Estado de respuesta HTTP:', response.status);
 
       const result = await response.json();
-      console.log('📥 Respuesta del backend:', result);
 
       if (!response.ok) {
         console.warn('⚠️ Error devuelto por el backend:', result.error);
@@ -51,11 +50,8 @@ const Login = () => {
         localStorage.setItem('role', decoded.rol);
         localStorage.setItem('token', token);
 
-        console.log('💾 Email guardado en localStorage:', decoded.email);
-        console.log('💾 Rol guardado en localStorage:', decoded.rol);
 
         login({ email: decoded.email, rol: decoded.rol }, token);
-        console.log('🔀 Redirigiendo a /');
         navigate('/');
       } else {
         console.warn('⚠️ Token inválido o datos incompletos:', decoded);
@@ -68,39 +64,70 @@ const Login = () => {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-      <main style={{ flex: 1 }}>
-        <div className="container mt-5 mb-5">
-          <h2 className="text-center mb-4" style={{ fontWeight: 'bold' }}>Iniciar Sesión</h2>
-          <form onSubmit={handleSubmit} className="mx-auto p-4 shadow rounded" style={{ maxWidth: '600px', backgroundColor: '#f9f9f9' }}>
-            <div className="mb-3">
-              <label className="form-label">Correo Electrónico</label>
-              <input
-                type="email"
-                className="form-control"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            <div className="mb-3">
-              <label className="form-label">Contraseña</label>
-              <input
-                type="password"
-                className="form-control"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                required
-              />
-            </div>
-            {error && <p className="text-danger">{error}</p>}
-            <button type="submit" className="btn btn-dark w-100">Entrar</button>
-          </form>
-        </div>
-      </main>
-    </div>
+    <ThemeProvider theme={theme}>
+      <Box
+        sx={{
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          px: 2,
+          backgroundColor: '#f9f9f9'
+        }}
+      >
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            maxWidth: 600,
+            mx: 'auto'
+          }}
+        >
+          <Typography variant="h4" align="center" gutterBottom fontWeight="bold">
+            Iniciar Sesión
+          </Typography>
+
+          <TextField
+            variant='standard'
+            label="Correo Electrónico"
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+            fullWidth
+            margin="normal"
+          />
+
+          <TextField
+            variant='standard'
+            label="Contraseña"
+            type="password"
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            fullWidth
+            margin="normal"
+          />
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+
+          <Button
+            type="submit"
+            variant="contained"
+            color="primary"
+            sx={{ mt: 3, mx: 'auto', display: 'block' }}
+          >
+            Entrar
+          </Button>
+        </Box>
+      </Box>
+    </ThemeProvider>
   );
 };
 

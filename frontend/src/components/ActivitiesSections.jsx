@@ -22,7 +22,7 @@ function ActivitiesSection() {
               "url('https://t4.ftcdn.net/jpg/04/29/51/81/360_F_429518118_k4gpunbwSm2xBDLX71kzWhFPGLvi1Cab.jpg')",
           }}
         >
-          <span className="activity-text">Renta de Ring</span>
+          <span className="activity-text">Torneos</span>
         </div>
         <div
           className="activity-card"
@@ -44,10 +44,10 @@ function ActivitiesSection() {
         </div>
       </div>
       <div style={{ marginTop: '30px', textAlign: 'center' }}>
-    <button type="button" className="btn btn-outline-warning">
-      Consultar todas las actividades
-    </button>
-  </div>
+        <button type="button" className="btn btn-outline-warning">
+          Consultar todas las actividades
+        </button>
+      </div>
     </div>
   );
 }

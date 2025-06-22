@@ -28,7 +28,6 @@ const Profile = () => {
   const fetchUserData = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      console.log('❌ No token found, redirecting...');
       navigate('/sesion');
       return;
     }
@@ -47,7 +46,6 @@ const Profile = () => {
       }
 
       const data = await response.json();
-      console.log('✅ Datos del usuario obtenidos:', data);
 
       setAvatarUrl(data.avatar_url || '');
       setFormData({
@@ -102,7 +100,6 @@ const Profile = () => {
     }
 
     const data = await response.json();
-    console.log('Respuesta de la API de pago:', data);
 
     if (data.redirect_url) {
       window.location.href = data.redirect_url;
@@ -142,7 +139,6 @@ const Profile = () => {
     }
 
     const newAvatarUrl = data.public_url;
-    console.log('Avatar actualizado con URL:', newAvatarUrl);
 
     setAvatarUrl(newAvatarUrl);
     updateUser({ ...user, avatar_url: newAvatarUrl });
@@ -186,7 +182,6 @@ const handleSave = async () => {
     }
 
     const updatedData = await response.json();
-    console.log('✅ Perfil actualizado:', updatedData);
 
     setFormData(updatedData);
     updateUser(updatedData);
@@ -210,11 +205,9 @@ const handleSave = async () => {
   try {
     const token = localStorage.getItem('token');
     if (!token) {
-      console.log('❌ Token no encontrado');
       return;
     }
 
-    console.log('🗑️ Eliminando cuenta para el email:', user.email);
 
     const response = await fetch('http://localhost:8000/api/delete_user/', {
       method: 'DELETE',
@@ -226,7 +219,6 @@ const handleSave = async () => {
     });
 
     if (response.ok) {
-      console.log('✅ Cuenta eliminada correctamente');
       logout();  
       window.location.replace('/');
     } else {
@@ -296,6 +288,7 @@ const handleSave = async () => {
                 <Button variant="outlined" color="error" onClick={handleDeleteAccount}>
                   Eliminar cuenta
                 </Button>
+                
               </Stack>
             </Box>
           ) : (

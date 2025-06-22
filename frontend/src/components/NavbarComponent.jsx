@@ -35,6 +35,7 @@ const handleLogout = () => {
             <>
               <Nav.Link as={Link} to="/perfil">Perfil</Nav.Link>
               <Nav.Link as={Link} to="/gimnasios">Gimnasios</Nav.Link>
+              <Nav.Link as={Link} to="/torneo">Torneos</Nav.Link>
               <Nav.Link as={Link} to="/rutinas">Rutinas</Nav.Link>
               <Nav.Link as={Link} to="/arriendo">Reservas</Nav.Link>
               <Nav.Link as={Link} to="/clases">Clases</Nav.Link>

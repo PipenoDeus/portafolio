@@ -96,7 +96,7 @@ const Rutinas = () => {
   const puedeCrearRutinas = role === 'admin' || role === 'entrenador';
 
   return (
-    <div style={{ maxWidth: '800px', margin: '2rem auto', fontFamily: 'Arial, sans-serif' }}>
+    <div style={{ maxWidth: '800px', margin: '2rem auto', fontFamily: '"Raleway","Space Mono","Anton", "Helvetica", "Arial", "sans-serif"' }}>
       <h1 style={{ textAlign: 'center', color: '#333' }}>Gestión de Rutinas</h1>
 
       {puedeCrearRutinas ? (

@@ -180,14 +180,13 @@ const PanelAdmin = () => {
   const handleCreateGym = async () => {
   const token = localStorage.getItem('token');
 
-  console.log("Intentando crear gimnasio con:", newGym);
+
 
   if (!newGym.imagen_url) {
     alert("Debes subir una imagen antes de crear el gimnasio.");
     return;
   }
 
-  console.log("Enviando datos del gimnasio:", newGym);
 
   try {
     const response = await fetch('http://localhost:8000/api/gimnasios/crear/', {
@@ -238,11 +237,10 @@ const handleGymImageUpload = async (e) => {
     }
 
     const imageUrl = data.public_url;
-    console.log("Imagen subida, URL pública:", imageUrl);
+
 
     setNewGym((prev) => {
       const updated = { ...prev, imagen_url: imageUrl };
-      console.log("newGym actualizado:", updated);
       return updated;
     });
   } catch (error) {
@@ -367,20 +365,19 @@ const handleCreateRing = async () => {
     if (response.ok) {
       alert("Ring creado exitosamente.");
       
-      // Accedemos al primer elemento de 'data' en la respuesta
-      const createdRing = responseData.data[0]; 
-      console.log('Ring creado:', createdRing);
 
-      // Actualizamos el estado con la información del nuevo ring creado
+      const createdRing = responseData.data[0]; 
+
+
       setNewRing({
         nombre: createdRing.nombre,
         descripcion: createdRing.descripcion,
         estado: createdRing.estado,
         gimnasio_id: createdRing.gimnasio_id,
-        imagen_url: createdRing.imagen_url, // Si la imagen fue subida exitosamente
+        imagen_url: createdRing.imagen_url, 
       });
 
-      fetchRings(token);  // Si necesitas obtener el listado de rings después de crear uno
+      fetchRings(token);  
     } else {
       console.error('Error al crear ring:', responseData);
       alert('Error al crear ring. Revisa la consola.');
@@ -474,11 +471,9 @@ const handleRingImageUpload = async (e) => {
     }
 
     const imageUrl = data.public_url;
-    console.log("Imagen subida, URL pública:", imageUrl);
 
     setNewRing((prev) => {
       const updated = { ...prev, imagen_url: imageUrl };
-      console.log("newRing actualizado:", updated);
       return updated;
     });
   } catch (error) {
@@ -509,7 +504,6 @@ const handleUpdateRutina = async () => {
     });
 
     const resultText = await response.text();
-    console.log("Respuesta cruda:", resultText);
 
     if (!response.ok) {
       throw new Error('Error al actualizar la rutina');
@@ -547,7 +541,6 @@ const handleDeleteRutina = async (id) => {
     }
 
     setRutinas(prev => prev.filter(r => r.id !== id));
-    console.log('Rutina eliminada');
 
   } catch (error) {
     console.error('Error en eliminación:', error);
@@ -636,7 +629,6 @@ const handleDeleteRutina = async (id) => {
         },
       });
       const data = await res.json();
-      console.log('Clases recibidas:', data);
 
       if (Array.isArray(data)) {
         setClases(data);
@@ -746,7 +738,6 @@ const handleUpdateBlog = async () => {
     const data = await res.json();
 
     if (res.ok) {
-      console.log('Blog actualizado:', data);
       fetchBlogs(token); 
       setEditBlog(null); 
     } else {

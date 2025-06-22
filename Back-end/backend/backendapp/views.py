@@ -1761,3 +1761,77 @@ def api_list_reservas_token(request):
         return JsonResponse({'error': 'Token inválido'}, status=401)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+# ======================== LISTAR TORNEOS ========================
+@csrf_exempt
+def api_list_torneos(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        result = supabase.table("torneo").select("*").order('created_at', desc=True).execute()
+
+        if isinstance(result.data, list):
+            return JsonResponse(result.data, safe=False, status=200)
+        else:
+            return JsonResponse({'error': 'No se encontraron torneos'}, status=404)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
+
+# ======================== CREAR TORNEO ========================
+@csrf_exempt
+def api_crear_torneo(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        user_id = payload.get('user_id')  # Asegúrate de que este campo esté presente
+
+        body = json.loads(request.body.decode('utf-8'))
+
+        nombre = body.get('nombre')
+        descripcion = body.get('descripcion', '')
+        inicio = body.get('inicio')
+        final = body.get('final')
+        lugar = body.get('lugar')
+
+        if not all([nombre, inicio, final, lugar]):
+            return JsonResponse({'error': 'Campos obligatorios faltantes.'}, status=400)
+
+        data = {
+            'nombre': nombre,
+            'descripcion': descripcion,
+            'inicio': inicio,
+            'final': final,
+            'lugar': lugar,
+            'creado_pro': user_id,
+        }
+
+        result = supabase.table("torneo").insert(data).execute()
+
+        if result.data:
+            return JsonResponse(result.data[0], status=201)
+        else:
+            return JsonResponse({'error': 'Error al crear el torneo.'}, status=500)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
