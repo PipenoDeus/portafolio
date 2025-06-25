@@ -1,7 +1,7 @@
 from django.urls import path, include
 from . import views
 from rest_framework.routers import DefaultRouter
-from .views import api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs,api_create_rutina,api_get_rutinas,api_update_user,api_delete_user,api_get_user_data,api_list_users,admin_update_user,api_verify_token,admin_delete_user,api_create_gimnasio,api_list_gimnasios,api_update_gimnasio,api_delete_gimnasio,api_update_rutina,api_delete_rutina,api_listar_reservas,api_modificar_reserva,api_eliminar_reserva,crear_pago,pago_exitoso,start_payment_process,generate_transaction_token,complete_payment,api_create_clase,api_delete_clase,api_list_clases,api_update_clase,api_create_blog_admin,api_delete_blog_admin,api_list_blogs_admin,api_update_blog_admin,api_create_ring_admin,api_delete_ring_admin,api_list_rings_admin,api_update_ring_admin,upload_image_gym,upload_image_rings,upload_profile_avatar,api_update_user_profile,api_list_reservas_token,api_list_torneos,api_crear_torneo
+from .views import api_login,api_register,obtener_gimnasios,obtener_clases,api_reservar_ring,api_create_blog,api_get_blogs,api_create_rutina,api_get_rutinas,api_update_user,api_delete_user,api_get_user_data,api_list_users,admin_update_user,api_verify_token,admin_delete_user,api_create_gimnasio,api_list_gimnasios,api_update_gimnasio,api_delete_gimnasio,api_update_rutina,api_delete_rutina,api_listar_reservas,api_modificar_reserva,api_eliminar_reserva,crear_pago,pago_exitoso,start_payment_process,generate_transaction_token,complete_payment,api_create_clase,api_delete_clase,api_list_clases,api_update_clase,api_create_blog_admin,api_delete_blog_admin,api_list_blogs_admin,api_update_blog_admin,api_create_ring_admin,api_delete_ring_admin,api_list_rings_admin,api_update_ring_admin,upload_image_gym,upload_image_rings,upload_profile_avatar,api_update_user_profile,api_list_reservas_token,api_list_torneos,api_crear_torneo,api_reservas_publicas
 router = DefaultRouter()
 
 urlpatterns = [
@@ -54,4 +54,5 @@ urlpatterns = [
     path('api/reservas/general', api_list_reservas_token, name='api_list_reservas_token'),
     path('api/torneo/', api_list_torneos, name='api_list_torneos'),
     path('api/crear-torneo/', api_crear_torneo, name='crear_torneo'),
+    path('api/reservas-publicas/', api_reservas_publicas, name='api_reservas_publicas'),
 ]

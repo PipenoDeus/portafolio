@@ -1835,3 +1835,66 @@ def api_crear_torneo(request):
         return JsonResponse({'error': 'Token inválido'}, status=401)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+    
+
+ # ======================== RESERVAS CALENDARIO ========================   
+@csrf_exempt
+def api_reservas_publicas(request):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    # Verificar token JWT
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        # Decodificar token
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        # Solo verifica que el token es válido. No hace distinción de rol.
+
+        # Obtener todas las reservas
+        reservas_resp = supabase.table("reservas").select("*").execute()
+        reservas = reservas_resp.data
+
+        perfiles_resp = supabase.table("user_profiles").select("id, email, first_name, last_name").execute()
+        perfiles = perfiles_resp.data
+
+        rings_resp = supabase.table("rings").select("id, nombre").execute()
+        rings = rings_resp.data
+
+        for reserva in reservas:
+            boxeador = next((u for u in perfiles if u["id"] == reserva["boxer_id"]), None)
+            if boxeador:
+                reserva["boxeador_nombre"] = f'{boxeador["first_name"]} {boxeador["last_name"]}'
+                reserva["boxeador_email"] = boxeador["email"]
+            else:
+                reserva["boxeador_nombre"] = "Desconocido"
+                reserva["boxeador_email"] = "Desconocido"
+
+            reserva_email = (reserva.get("oponent_email") or "").strip().lower()
+            oponente = next(
+                (u for u in perfiles if (u.get("email") or "").strip().lower() == reserva_email),
+                None
+            )
+
+            if oponente:
+                reserva["oponente_nombre"] = f'{oponente["first_name"]} {oponente["last_name"]}'
+                reserva["oponente_email"] = oponente["email"]
+            else:
+                reserva["oponente_nombre"] = "Desconocido"
+                reserva["oponente_email"] = reserva.get("oponent_email", "Sin email")
+
+            ring = next((r for r in rings if r["id"] == reserva["ring_id"]), None)
+            reserva["ring_nombre"] = ring["nombre"] if ring else "Desconocido"
+
+        return JsonResponse(reservas, safe=False, status=200)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
