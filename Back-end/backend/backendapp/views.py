@@ -1898,3 +1898,174 @@ def api_reservas_publicas(request):
         return JsonResponse({'error': 'Token inválido'}, status=401)
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+@csrf_exempt
+def api_detalle_torneo(request, torneo_id):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        # Obtener datos del torneo
+        torneo_resp = supabase.table("torneo").select("*").eq("id", torneo_id).single().execute()
+        torneo = torneo_resp.data
+
+        if not torneo:
+            return JsonResponse({'error': 'Torneo no encontrado'}, status=404)
+
+        # Obtener todas las llaves asociadas al torneo
+        llaves_resp = supabase.table("llave").select("*").eq("torneo_id", torneo_id).order("ronda").order("orden").execute()
+        llaves = llaves_resp.data
+
+        # Obtener perfiles para mostrar nombres
+        participantes_ids = list(set(
+            [l['participante1'] for l in llaves if l['participante1']] +
+            [l['participante2'] for l in llaves if l['participante2']] +
+            [l['ganador'] for l in llaves if l['ganador']]
+        ))
+
+        perfiles = []
+        if participantes_ids:
+            perfiles_resp = supabase.table("user_profiles").select("id, first_name, last_name").in_("id", participantes_ids).execute()
+            perfiles = perfiles_resp.data
+
+        perfil_dict = {p['id']: f"{p['first_name']} {p['last_name']}" for p in perfiles}
+
+        # Transformar llaves en estructura por ronda
+        bracket = {}
+        for llave in llaves:
+            ronda = llave['ronda']
+            if ronda not in bracket:
+                bracket[ronda] = []
+            bracket[ronda].append({
+                'participante1': perfil_dict.get(llave['participante1'], 'Participante no encontrado'),
+                'participante2': perfil_dict.get(llave['participante2'], 'Participante no encontrado'),
+                'ganador': perfil_dict.get(llave['ganador'], None),
+                'ring_id': llave.get('ring_id'),
+                'fecha': llave.get('fecha')
+            })
+
+        bracket_list = [bracket[r] for r in sorted(bracket.keys())]
+
+        return JsonResponse({
+            'torneo': torneo,
+            'bracket': bracket_list
+        }, status=200)
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+    
+ # ======================== INSCRIPCION TORNEO ========================  
+@csrf_exempt
+def api_inscribir_torneo(request, torneo_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+        user_id = payload.get('user_id')
+
+        # Verificar si ya está inscrito
+        ya_inscrito = supabase.table("llave")\
+            .select("id")\
+            .eq("torneo_id", torneo_id)\
+            .or_(f"participante1.eq.{user_id},participante2.eq.{user_id}")\
+            .execute()
+
+        if ya_inscrito.data:
+            return JsonResponse({'error': 'Ya estás inscrito en este torneo'}, status=400)
+
+        # Buscar una llave con solo un participante (esperando oponente)
+        llave_esperando = supabase.table("llave")\
+            .select("*")\
+            .eq("torneo_id", torneo_id)\
+            .is_("participante2", "null")\
+            .execute()
+
+        if llave_esperando.data:
+            # Emparejar con el usuario actual como participante2
+            llave = llave_esperando.data[0]
+            supabase.table("llave").update({
+                "participante2": user_id
+            }).eq("id", llave["id"]).execute()
+
+            return JsonResponse({'mensaje': 'Inscrito como participante2 en llave existente'}, status=201)
+
+        else:
+            # Obtener cuántas llaves hay ya para determinar el orden
+            total_llaves = supabase.table("llave")\
+                .select("id", count='exact')\
+                .eq("torneo_id", torneo_id)\
+                .execute()
+
+            orden = total_llaves.count if total_llaves.count is not None else 0
+
+            # Crear nueva llave con este usuario como participante1
+            nueva_llave = {
+                "torneo_id": str(torneo_id),
+                "ronda": 1,
+                "orden": orden,
+                "participante1": str(user_id),
+            }
+
+            resultado = supabase.table("llave").insert(nueva_llave).execute()
+
+            return JsonResponse({'mensaje': 'Inscripción exitosa como participante1 en nueva llave'}, status=201)
+
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({'error': 'Token expirado'}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({'error': 'Token inválido'}, status=401)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
+
+
+    
+
+ # ======================== PARTICIPANTES TORNEO ========================  
+def api_participantes_torneo(request, torneo_id):
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Método no permitido'}, status=405)
+
+    auth_header = request.headers.get('Authorization')
+    if not auth_header or not auth_header.startswith('Bearer '):
+        return JsonResponse({'error': 'Token no proporcionado'}, status=401)
+
+    token = auth_header.split(' ')[1]
+
+    try:
+        payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=['HS256'])
+
+        # Buscar participantes inscritos en tabla de inscripciones (ajusta a tu modelo)
+        inscripciones_resp = supabase.table("inscripcion").select("usuario_id").eq("torneo_id", torneo_id).execute()
+        inscripciones = inscripciones_resp.data
+
+        participante_ids = list(set([i['usuario_id'] for i in inscripciones if i.get('usuario_id')]))
+
+        if not participante_ids:
+            return JsonResponse({'participantes': []})
+
+        perfiles_resp = supabase.table("user_profiles").select("id, first_name, last_name").in_("id", participante_ids).execute()
+        perfiles = perfiles_resp.data
+
+        participantes = [{"id": p["id"], "nombre": f"{p['first_name']} {p['last_name']}"} for p in perfiles]
+
+        return JsonResponse({'participantes': participantes})
+
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)

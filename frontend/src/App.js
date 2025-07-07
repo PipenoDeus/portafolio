@@ -24,6 +24,7 @@ import Rutinas from './components/Rutinas.jsx';
 import PanelAdmin from './components/PanelAdmin.jsx';
 import Torneo from './components/Torneo.jsx';
 import TorneoCrear from './components/crear-torneo.jsx';
+import TorneoDetalle from './components/TorneoDetalle';
 
 function App() {
   return (
@@ -67,6 +68,7 @@ function App() {
             <Route path="/Calendario" element={<Calendario />} />
             <Route path="/torneo" element={<Torneo />} />
             <Route path="/crear-torneo" element={<TorneoCrear />} />
+            <Route path="/torneo/:id" element={<TorneoDetalle />} />
             
           </Route>
         </Routes>
