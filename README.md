@@ -1,4 +1,4 @@
-## Gestión de Peleas para Gimnasios - Proyecto APT
+## Gestión de Peleas para Gimnasios - Proyecto APT SparringLab
 
 Este sistema permite la gestión de torneos de pelea en gimnasios, incluyendo inscripción de participantes, arriendo de sparring y control de usuarios (login y roles) y de gymnasios.
 
