@@ -22,15 +22,15 @@ Este sistema permite la gestión de torneos de pelea en gimnasios, incluyendo in
    ```bash
    [git clone https://github.com/PipenoDeus/portafolio]
 
-Instala las dependencias del frontend
+## Instala las dependencias del frontend
 
-cd frontend
-npm install
-npm start
+- cd frontend
+-npm install
+- npm start
 
-Instala las dependencias del backend
+## Instala las dependencias del backend
 
-cd back-end
-cd backend
-pip install -r requirements.txt
-python manage.py runserver
+-cd back-end
+-cd backend
+-pip install -r requirements.txt
+-python manage.py runserver
