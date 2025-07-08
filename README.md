@@ -25,12 +25,12 @@ Este sistema permite la gestión de torneos de pelea en gimnasios, incluyendo in
 ## Instala las dependencias del frontend
 
 - cd frontend
--npm install
+- npm install
 - npm start
 
 ## Instala las dependencias del backend
 
--cd back-end
--cd backend
--pip install -r requirements.txt
--python manage.py runserver
+- cd back-end
+- cd backend
+- pip install -r requirements.txt
+- python manage.py runserver
