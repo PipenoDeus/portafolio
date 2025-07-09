@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@g-loot/react-tournament-brackets": "^1.0.31-rc"
+  }
+}
