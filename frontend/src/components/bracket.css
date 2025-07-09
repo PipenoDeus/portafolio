@@ -1,0 +1,54 @@
+/* bracket.css */
+.bracket {
+  display: flex;
+  flex-direction: row;
+  justify-content: start;
+  overflow-x: auto;
+  padding: 20px;
+  gap: 20px;
+  flex-wrap: nowrap;
+}
+
+.round {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.match {
+  position: relative;
+  background: #f1f1f1;
+  border-radius: 8px;
+  padding: 10px;
+  min-width: 180px;
+  text-align: center;
+  border-left: 4px solid #2196f3;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.match::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -20px;
+  width: 20px;
+  height: 2px;
+  background-color: #2196f3;
+}
+
+.match span {
+  display: block;
+  font-weight: bold;
+}
+
+@media (max-width: 768px) {
+  .match {
+    min-width: 120px;
+    font-size: 0.85em;
+  }
+}
+
+.match.ganado {
+  border-left-color: #4caf50;
+  background-color: #e8f5e9;
+}
