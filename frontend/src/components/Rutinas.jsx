@@ -13,9 +13,9 @@ const Rutinas = () => {
   const token = localStorage.getItem('token');
   const { user, role } = useAuth();
 
+
   const fetchRutinas = async () => {
     try {
-
       const response = await fetch('http://localhost:8000/api/get_rutina', {
         method: 'GET',
         headers: {
@@ -27,16 +27,16 @@ const Rutinas = () => {
 
       if (response.ok) {
         if (Array.isArray(result.data)) {
-
           setRutinas(result.data);
         } else {
           console.error('La propiedad "data" no es un array:', result.data);
         }
       } else {
-        console.error('Error al obtener rutinas (response.ok = false):', result.error);
+        console.error(' Error al obtener rutinas (response.ok = false):', result.error);
+        setError(result.error || 'Error desconocido al obtener rutinas');
       }
     } catch (error) {
-      console.error('Error al obtener rutinas (try-catch):', error);
+      console.error(' Error al obtener rutinas (try-catch):', error);
       setError('Error al cargar las rutinas');
     }
   };
@@ -55,48 +55,56 @@ const Rutinas = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!user?.id) {
-      console.warn('❌ Usuario no válido para crear rutinas');
-      setError('Usuario no válido para crear rutinas');
+    if (!token) {
+      setError('Token no encontrado. Por favor, inicia sesión.');
       return;
     }
 
-    const dataConEntrenador = {
-      ...formData,
-      entrenador_id: user.id
+    const dataSinEntrenador = {
+      nombre: formData.nombre,
+      descripcion: formData.descripcion,
+      nivel: formData.nivel
     };
 
 
-    fetch('http://localhost:8000/api/create_rutina', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(dataConEntrenador)
-    })
-      .then(response => {
-        if (!response.ok) throw new Error('Error al crear rutina');
-        return response.json();
-      })
-      .then(() => {
-        alert('Rutina creada exitosamente');
-        setFormData({ nombre: '', descripcion: '', nivel: '' });
-        fetchRutinas(); 
-      })
-      .catch(err => {
-        console.error('❌ Error al crear rutina:', err);
-        setError(err.message);
+    try {
+      const response = await fetch('http://localhost:8000/api/create_rutina', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(dataSinEntrenador)
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error('Respuesta error del servidor:', data);
+        throw new Error(data.error || 'Error desconocido al crear rutina');
+      }
+
+      alert('Rutina creada exitosamente');
+      setFormData({ nombre: '', descripcion: '', nivel: '' });
+      fetchRutinas();
+
+    } catch (err) {
+      console.error(' Error al crear rutina:', err);
+      setError(err.message);
+    }
   };
 
   const puedeCrearRutinas = role === 'admin' || role === 'entrenador';
 
   return (
-    <div style={{ maxWidth: '800px', margin: '2rem auto', fontFamily: '"Raleway","Space Mono","Anton", "Helvetica", "Arial", "sans-serif"' }}>
+    <div style={{
+      maxWidth: '800px',
+      margin: '2rem auto',
+      fontFamily: '"Raleway","Space Mono","Anton", "Helvetica", "Arial", "sans-serif"'
+    }}>
       <h1 style={{ textAlign: 'center', color: '#333' }}>Gestión de Rutinas</h1>
 
       {puedeCrearRutinas ? (
@@ -112,9 +120,30 @@ const Rutinas = () => {
           marginBottom: '2rem'
         }}>
           <h2>Crear Nueva Rutina</h2>
-          <input type="text" name="nombre" placeholder="Nombre" value={formData.nombre} onChange={handleChange} required />
-          <textarea name="descripcion" placeholder="Descripción" value={formData.descripcion} onChange={handleChange} required rows="3" />
-          <input type="text" name="nivel" placeholder="Nivel (Ej: Principiante, Avanzado)" value={formData.nivel} onChange={handleChange} required />
+          <input
+            type="text"
+            name="nombre"
+            placeholder="Nombre"
+            value={formData.nombre}
+            onChange={handleChange}
+            required
+          />
+          <textarea
+            name="descripcion"
+            placeholder="Descripción"
+            value={formData.descripcion}
+            onChange={handleChange}
+            required
+            rows="3"
+          />
+          <input
+            type="text"
+            name="nivel"
+            placeholder="Nivel (Ej: Principiante, Avanzado)"
+            value={formData.nivel}
+            onChange={handleChange}
+            required
+          />
           <button type="submit" style={{
             padding: '0.75rem',
             backgroundColor: '#007bff',
@@ -125,7 +154,9 @@ const Rutinas = () => {
           }}>Crear Rutina</button>
         </form>
       ) : (
-        <p style={{ color: 'gray', textAlign: 'center' }}>No tienes permisos para crear rutinas.</p>
+        <p style={{ color: 'gray', textAlign: 'center' }}>
+          No tienes permisos para crear rutinas.
+        </p>
       )}
 
       {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
@@ -146,7 +177,6 @@ const Rutinas = () => {
               <h3 style={{ margin: '0 0 0.5rem' }}>{rutina.nombre}</h3>
               <p><strong>Descripción:</strong> {rutina.descripcion}</p>
               <p><strong>Nivel:</strong> {rutina.nivel || 'No especificado'}</p>
-              <p><strong>Entrenador ID:</strong> {rutina.entrenador_id}</p>
             </div>
           ))}
         </div>

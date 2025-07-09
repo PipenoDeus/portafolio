@@ -72,11 +72,10 @@ const TorneoDetalle = () => {
     }
 
     if (response.ok) {
-      console.log('✅ Respuesta exitosa:', data);
+      console.log(' Respuesta exitosa:', data);
       setSnackbarMessage(data.message);
       setSnackbarSeverity('success');
 
-      // Refrescar datos
       const torneoRes = await fetch(`http://localhost:8000/api/torneo/${id}/`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -84,7 +83,7 @@ const TorneoDetalle = () => {
       setTorneo(torneoData.torneo);
       setBracket(torneoData.bracket);
     } else {
-      console.error('❌ Error desde API:', data);
+      console.error(' Error desde API:', data);
       throw new Error(data.error || 'No se pudo declarar el ganador');
     }
   } catch (err) {

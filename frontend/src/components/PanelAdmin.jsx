@@ -1744,10 +1744,26 @@ const handleDeleteBlog = async (id) => {
                         ) : (
                           blogs.map((b) => (
                             <tr key={b.id}>
-                              <td style={tdStyle}>{b.titulo}</td>
-                              <td style={tdStyle}>{b.contenido}</td>
-                              <td style={tdStyle}>{new Date(b.fecha_creacion).toLocaleDateString()}</td>
-                              <td style={tdStyle}>{b.aprobado ? 'Aprobado' : 'No Aprobado'}</td>
+                              <td style={tdStyle}>
+                                {b.titulo.length > 15
+                                  ? b.titulo.slice(0, 15) + '...'
+                                  : b.titulo}
+                              </td>
+
+                              <td style={tdStyle}>
+                                {b.contenido.length > 100
+                                  ? b.contenido.slice(0, 100) + '...'
+                                  : b.contenido}
+                              </td>
+
+                              <td style={tdStyle}>
+                                {new Date(b.fecha_creacion).toLocaleDateString()}
+                              </td>
+
+                              <td style={tdStyle}>
+                                {b.aprobado ? 'Aprobado' : 'No Aprobado'}
+                              </td>
+
                               <td style={tdStyle}>
                                 <button onClick={() => setEditBlog(b)} style={btnStyle}>Editar</button>
                                 <button

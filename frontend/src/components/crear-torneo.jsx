@@ -9,7 +9,7 @@ import {
     Alert,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode'; // ✅ importa el decoder
+import { jwtDecode } from 'jwt-decode';
 
 const cities = [
   { id: 'Villa Alemana', nombre: 'Villa Alemana' },

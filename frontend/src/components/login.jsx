@@ -54,11 +54,11 @@ const Login = () => {
         login({ email: decoded.email, rol: decoded.rol }, token);
         navigate('/');
       } else {
-        console.warn('⚠️ Token inválido o datos incompletos:', decoded);
+        console.warn(' Token inválido o datos incompletos:', decoded);
         setError('Datos del usuario incompletos');
       }
     } catch (err) {
-      console.error('❌ Error de red o servidor:', err);
+      console.error(' Error de red o servidor:', err);
       setError('Error al conectar con el servidor');
     }
   };

@@ -14,8 +14,6 @@ const Contacto = () => {
       <p>
         ¿Tienes preguntas, sugerencias o deseas colaborar con nosotros? ¡Nos encantaría saber de ti! Puedes contactarnos a través de nuestras redes sociales o enviarnos un correo.
       </p>
-
-      {/* Bloques de contacto en fila */}
       <div className="d-flex flex-column gap-3">
         <div className="p-3 rounded text-white" style={{ backgroundColor: 'darkcyan' }}>
           <h5>

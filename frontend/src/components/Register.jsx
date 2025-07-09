@@ -46,7 +46,6 @@ const navigate = useNavigate();
 const handleSubmit = async (e) => {
   e.preventDefault();
 
-  // Calcular edad
   const birthDate = new Date(formData.birthdate);
   const today = new Date();
   const age = today.getFullYear() - birthDate.getFullYear();

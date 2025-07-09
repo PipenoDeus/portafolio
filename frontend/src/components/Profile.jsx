@@ -40,7 +40,7 @@ const Profile = () => {
       });
 
       if (!response.ok) {
-        console.error('❌ Error al obtener datos del usuario:', await response.json());
+        console.error('Error al obtener datos del usuario:', await response.json());
         navigate('/sesion');
         return;
       }
@@ -60,11 +60,10 @@ const Profile = () => {
         rol: data.rol || ''
       });
 
-      // Opcional: actualizar el contexto global si usas AuthContext
       updateUser(data);
 
     } catch (err) {
-      console.error('❌ Error al llamar a la API de usuario:', err);
+      console.error(' Error al llamar a la API de usuario:', err);
       navigate('/sesion');
     }
   };
@@ -190,7 +189,7 @@ const handleSave = async () => {
     alert('Perfil actualizado con éxito');
 
   } catch (err) {
-    console.error('❌ Error al actualizar perfil:', err);
+    console.error('Error al actualizar perfil:', err);
     alert('Error de red al actualizar perfil');
   }
 };
@@ -228,7 +227,7 @@ const handleSave = async () => {
     }
 
   } catch (err) {
-    console.error('❌ Error en la solicitud de eliminación de cuenta:', err);
+    console.error('Error en la solicitud de eliminación de cuenta:', err);
     alert('Hubo un problema al intentar eliminar la cuenta.');
   }
 };
